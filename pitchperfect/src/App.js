@@ -1,7 +1,11 @@
 // src/App.js
 import React from 'react';
-import AudioRecorder from './RecordAudio/AudioRecorder';
+//import AudioRecorder from './RecordAudio/AudioRecorder';
 import { CssBaseline, ThemeProvider, createTheme } from '@mui/material';
+import Login from './Component/Login';
+
+
+
 
 const theme = createTheme({
   palette: {
@@ -19,7 +23,11 @@ function App() {
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <div className="App">
-        <AudioRecorder />
+        {/* <AudioRecorder /> */}
+          <Login />
+
+
+       
       </div>
     </ThemeProvider>
   );

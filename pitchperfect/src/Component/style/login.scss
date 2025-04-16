@@ -1,0 +1,212 @@
+// Variables
+$primary-color: #AB9BFA;
+$background-color: #101628;
+$text-color: #F5F5F5;
+$text-secondary: #F5F5F599;
+
+$hover-border-color: rgba(255, 255, 255, 0.4);
+$button-hover: #9485e0;
+
+// Mixins
+@mixin flex-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+@mixin transition {
+  transition: all 0.3s ease-in-out;
+}
+
+// Main Styles
+.login-container {
+  min-height: 100vh;
+  background-color: $background-color;
+  color: $text-color;
+  @include flex-center;
+  flex-direction: column;
+  padding: 20px;
+}
+
+.mb {
+  margin-bottom: 0px !important;
+}
+
+.login-header {
+  text-align: center;
+  margin-bottom: 2rem;
+
+  &__logo {
+
+    margin-bottom: 2rem;
+  }
+
+  &__title {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    font-family: Roboto;
+    font-size: 24px;
+    line-height: 32px;
+    letter-spacing: 0px;
+    text-align: center;
+
+  }
+
+  &__subtitle {
+    color: $text-secondary;
+    max-width: 519px;
+    text-align: center;
+    font-family: Roboto;
+    font-weight: 400;
+    margin-top: 0px;
+    font-size: 14px;
+    line-height: 22px;
+
+  }
+}
+
+.login-form {
+  width: 100%;
+  max-width: 400px;
+
+  &__field {
+    width: 100%;
+    margin-bottom: 1.5rem;
+
+    &__label {
+      font-family: roboto;
+      font-size: 14px;
+      line-height: 20px;
+      letter-spacing: 0px;
+      display: block;
+      text-align: left;
+      padding-bottom: 10px;
+    }
+
+    .MuiOutlinedInput-root {
+      color: $text-color;
+      background-color: transparent;
+
+      fieldset {
+        border-color: $text-color;
+        @include transition;
+      }
+
+      &:hover fieldset {
+        border-color: $hover-border-color;
+      }     
+
+      &.Mui-focused fieldset {
+        border-color: $primary-color;
+      }
+    
+      input {
+        background-color: transparent;
+        &:-webkit-autofill,
+        &:-webkit-autofill:hover,
+        &:-webkit-autofill:focus {
+          -webkit-box-shadow: 0 0 0 30px $background-color inset !important;
+          -webkit-text-fill-color: $text-color !important;
+        }
+      }
+    }
+
+    .MuiInputLabel-root {
+      color: $text-secondary;
+    }
+
+    .MuiInputAdornment-root {
+      .MuiIconButton-root {
+        color: $text-secondary;
+
+        &:hover {
+          background-color: rgba(255, 255, 255, 0.05);
+        }
+      }
+    }
+  }
+
+  &__forgot-password {
+    text-align: right;
+    margin-bottom: 1rem;
+
+    a {
+      color: $primary-color;
+      font-family: Roboto;
+      font-weight: 500;
+      font-size: 12px;
+      text-align: center;
+      line-height: 30px;
+      text-decoration: none;
+      @include transition;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+  }
+
+  &__submit-button {
+    width: 100%;
+    padding: 12px;
+    background-color: $primary-color;
+    color: background-color;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    height: 48px;
+    font-family: roboto;
+    cursor: pointer;
+    @include transition;
+    box-shadow: 0px 1px 4px 0px #FFFFFF29 inset;
+
+
+    &:hover {
+      background-color: $button-hover;
+    }
+
+    &:disabled {
+      background-color: rgba($primary-color, 0.5);
+      cursor: not-allowed;
+    }
+  }
+}
+
+// Responsive styles
+@media (max-width: 600px) {
+  .login-container {
+    padding: 16px;
+  }
+
+  .login-header {
+    &__title {
+      font-size: 1.75rem;
+    }
+
+    &__subtitle {
+      font-size: 0.875rem;
+    }
+  }
+
+  .login-form {
+    max-width: 100%;
+  }
+}
+
+// Animation
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
