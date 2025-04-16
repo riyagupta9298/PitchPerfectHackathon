@@ -144,6 +144,7 @@ const styles = {
     padding: 20,
     margin: "50px auto",
     width: 380,
+    
     background: "#fff",
     borderRadius: 12,
     textAlign: "center",
