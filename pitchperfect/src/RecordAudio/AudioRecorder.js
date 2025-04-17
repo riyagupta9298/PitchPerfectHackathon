@@ -10,14 +10,14 @@ const VOICE_RANGES = {
 };
 
 // Minimum decibel level to consider as valid sound (below this is considered noise)
-const NOISE_THRESHOLD = 50; // dBFS (decibels relative to full scale)
+const NOISE_THRESHOLD = -50; // dBFS (decibels relative to full scale) - negative because getFloatFrequencyData returns negative values
 
 // Valid frequency range for human voice detection
 const MIN_VALID_FREQUENCY = 85;   // Lowest detectable frequency
 const MAX_VALID_FREQUENCY = 255;  // Highest detectable frequency
 
 // Size of buffer for smoothing pitch measurements
-const PITCH_BUFFER_SIZE = 5;      // Higher values = smoother but more latency
+const PITCH_BUFFER_SIZE = 8;      // Higher values = smoother but more latency
 
 const RESTART_DELAY = 50; // milliseconds delay for recognition restart
 
@@ -484,16 +484,26 @@ const AudioRecorder = () => {
     analyserRef.current = audioContextRef.current.createAnalyser();
     const source = audioContextRef.current.createMediaStreamSource(stream);
 
-    // Optimize analyzer settings
-    analyserRef.current.fftSize = 2048; // Increased for better resolution
-    analyserRef.current.smoothingTimeConstant = 0.9; // Increased smoothing
-    analyserRef.current.minDecibels = -100;
+    // Optimize analyzer settings for voice detection
+    analyserRef.current.fftSize = 4096; // Higher resolution for better frequency detection
+    analyserRef.current.smoothingTimeConstant = 0.8; // Balance between smoothing and responsiveness
+    analyserRef.current.minDecibels = -90; // Increased sensitivity
     analyserRef.current.maxDecibels = -10;
 
     source.connect(analyserRef.current);
 
+    // Create a low-pass filter to focus on voice frequencies
+    const lowPassFilter = audioContextRef.current.createBiquadFilter();
+    lowPassFilter.type = 'lowpass';
+    lowPassFilter.frequency.value = 350; // Focus on human voice range
+    lowPassFilter.Q.value = 1.0;
+
+    // Connect the filter
+    source.connect(lowPassFilter);
+    lowPassFilter.connect(analyserRef.current);
+
     const detectPitch = () => {
-      if (!isRecording) return;
+      //if (!isRecording) return;
 
       const bufferLength = analyserRef.current.frequencyBinCount;
       const dataArray = new Float32Array(bufferLength);
@@ -513,12 +523,22 @@ const AudioRecorder = () => {
           // Calculate median from buffer to reduce jitter
           const medianPitch = calculateMedian(newBuffer);
 
-          // Only update pitch if it's a significant change
-          if (Math.abs(medianPitch - pitch) > 5) {
-            setPitch(medianPitch);
-          }
+          // Always update pitch for better responsiveness, but with smoothing
+          setPitch(prevPitch => {
+            // Apply smoothing to reduce jitter
+            return Math.round(prevPitch * 0.7 + medianPitch * 0.3);
+          });
 
           return newBuffer;
+        });
+      } else {
+        // If no dominant frequency is detected, gradually decrease the pitch
+        // to indicate silence rather than abruptly dropping to zero
+        setPitch(prevPitch => {
+          if (prevPitch > 0) {
+            return Math.max(0, prevPitch - 3); // Gradually decrease
+          }
+          return 0;
         });
       }
 
@@ -534,19 +554,45 @@ const AudioRecorder = () => {
     const sampleRate = audioContextRef.current.sampleRate;
     const binSize = sampleRate / (dataArray.length * 2);
 
+    // Calculate the average magnitude to set a dynamic threshold
+    let sum = 0;
+    let count = 0;
     for (let i = 1; i < dataArray.length - 1; i++) {
+      const freq = i * binSize;
+      if (freq >= MIN_VALID_FREQUENCY && freq <= MAX_VALID_FREQUENCY) {
+        sum += dataArray[i];
+        count++;
+      }
+    }
+
+    // Calculate average and set a dynamic threshold
+    const avgMagnitude = count > 0 ? sum / count : -100;
+    const dynamicThreshold = Math.max(NOISE_THRESHOLD, avgMagnitude * 0.9); // 90% of average
+
+    // Find peaks using the dynamic threshold
+    for (let i = 2; i < dataArray.length - 2; i++) {
       const freq = i * binSize;
 
       // Only consider frequencies in human voice range
       if (freq < MIN_VALID_FREQUENCY || freq > MAX_VALID_FREQUENCY) continue;
 
-      // Check if this point is a peak
-      if (dataArray[i] > NOISE_THRESHOLD &&
-        dataArray[i] > dataArray[i - 1] &&
-        dataArray[i] > dataArray[i + 1]) {
+      // Check if this point is a peak (using a wider window for better peak detection)
+      if (dataArray[i] > dynamicThreshold &&
+          dataArray[i] > dataArray[i - 1] && dataArray[i] > dataArray[i - 2] &&
+          dataArray[i] > dataArray[i + 1] && dataArray[i] > dataArray[i + 2]) {
+
+        // Calculate the prominence of the peak (how much it stands out)
+        const prominence = Math.min(
+          dataArray[i] - dataArray[i - 2],
+          dataArray[i] - dataArray[i - 1],
+          dataArray[i] - dataArray[i + 1],
+          dataArray[i] - dataArray[i + 2]
+        );
+
         peaks.push({
           index: i,
           magnitude: dataArray[i],
+          prominence: prominence,
           frequency: freq
         });
       }
@@ -559,17 +605,37 @@ const AudioRecorder = () => {
   const getDominantFrequency = (peaks, dataArray, sampleRate) => {
     if (peaks.length === 0) return null;
 
-    // Sort peaks by magnitude
-    peaks.sort((a, b) => b.magnitude - a.magnitude);
+    // Sort peaks by prominence (how much they stand out) rather than just magnitude
+    // This helps identify the true voice frequency even in noisy environments
+    peaks.sort((a, b) => (b.prominence * 0.7 + b.magnitude * 0.3) - (a.prominence * 0.7 + a.magnitude * 0.3));
 
-    // Get the strongest peak
-    const dominantPeak = peaks[0];
+    // Take the top 3 peaks and find the one most likely to be a voice frequency
+    const topPeaks = peaks.slice(0, Math.min(3, peaks.length));
+
+    // Prefer frequencies in the middle of the human voice range
+    // This helps avoid selecting harmonics or background noise
+    topPeaks.sort((a, b) => {
+      // Calculate how central the frequency is to the human voice range
+      const midPoint = (MIN_VALID_FREQUENCY + MAX_VALID_FREQUENCY) / 2;
+      const distanceA = Math.abs(a.frequency - midPoint);
+      const distanceB = Math.abs(b.frequency - midPoint);
+      return distanceA - distanceB;
+    });
+
+    // Get the best peak
+    const dominantPeak = topPeaks[0];
 
     // Perform quadratic interpolation for more accurate frequency
     const alpha = dataArray[dominantPeak.index - 1];
     const beta = dataArray[dominantPeak.index];
     const gamma = dataArray[dominantPeak.index + 1];
-    const correction = 0.5 * (alpha - gamma) / (alpha - 2 * beta + gamma);
+
+    // Avoid division by zero or invalid interpolation
+    let correction = 0;
+    const denominator = alpha - 2 * beta + gamma;
+    if (denominator !== 0) {
+      correction = 0.5 * (alpha - gamma) / denominator;
+    }
 
     const interpolatedIndex = dominantPeak.index + correction;
     const frequency = Math.round(interpolatedIndex * sampleRate / (dataArray.length * 2));
@@ -584,7 +650,11 @@ const AudioRecorder = () => {
 
   // Helper function to calculate median
   const calculateMedian = (values) => {
-    const sorted = [...values].sort((a, b) => a - b);
+    // Filter out any invalid values (like NaN or undefined)
+    const validValues = values.filter(v => !isNaN(v) && v !== undefined);
+    if (validValues.length === 0) return 0;
+
+    const sorted = [...validValues].sort((a, b) => a - b);
     const middle = Math.floor(sorted.length / 2);
 
     if (sorted.length % 2 === 0) {
@@ -602,21 +672,47 @@ const AudioRecorder = () => {
     }
 
     // Add hysteresis to prevent rapid switching between ranges
-    const hysteresis = 3; // Hz
+    const hysteresis = 5; // Hz - increased to reduce flickering
 
+    // Store the last range to implement hysteresis
+    const lastRange = getVoiceRange.lastRange || 'TOO_LOW';
+    let currentRange = lastRange;
+    let currentLabel = 'Too Low';
+
+    // Determine the current range
     for (const [range, { min, max, label }] of Object.entries(VOICE_RANGES)) {
-      if (pitch >= (min - hysteresis) && pitch <= (max + hysteresis)) {
-        return { range, label };
+      // Apply more hysteresis when staying in the same range vs. changing ranges
+      const lowerBound = range === lastRange ? min - hysteresis : min;
+      const upperBound = range === lastRange ? max + hysteresis : max;
+
+      if (pitch >= lowerBound && pitch <= upperBound) {
+        currentRange = range;
+        currentLabel = label;
+        break;
       }
     }
 
-    return pitch < VOICE_RANGES.BASS.min
-      ? { range: 'TOO_LOW', label: 'Too Low' }
-      : { range: 'TOO_HIGH', label: 'Too High' };
+    // If no range matched, determine if it's too low or too high
+    if (currentRange === lastRange && (currentRange === 'TOO_LOW' || currentRange === 'TOO_HIGH')) {
+      currentRange = pitch < VOICE_RANGES.BASS.min
+        ? 'TOO_LOW'
+        : 'TOO_HIGH';
+      currentLabel = currentRange === 'TOO_LOW' ? 'Too Low' : 'Too High';
+    }
+
+    // Store the current range for next time
+    getVoiceRange.lastRange = currentRange;
+
+    return { range: currentRange, label: currentLabel };
   };
 
   // Add this helper function for the meter color
   const getVoiceColor = (pitch) => {
+    // Ensure pitch is a valid number
+    if (isNaN(pitch) || pitch === undefined) {
+      return '#B8B8B8'; // Default gray for invalid pitch
+    }
+
     const { range } = getVoiceRange(pitch);
     const colors = {
       BASS: '#4A90E2',    // Blue
@@ -666,7 +762,10 @@ const AudioRecorder = () => {
         mimeType: 'audio/webm;codecs=opus'
       });
 
-      setupPitchDetection(stream);
+      //setTimeout(() => {
+        setupPitchDetection(stream);
+      //}, 3000); // Delay to allow for microphone warm-up
+
 
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
@@ -807,7 +906,7 @@ const AudioRecorder = () => {
                       key={range}
                       style={{
                         ...styles.rangeSection,
-                        backgroundColor: pitch >= min && pitch <= max ? getVoiceColor(pitch) : '#E0E0E0',
+                        backgroundColor: (pitch >= min && pitch <= max) ? getVoiceColor(pitch) : '#E0E0E0',
                         width: `${((max - min) / (255 - 85)) * 100}%`
                       }}
                     >
@@ -821,7 +920,7 @@ const AudioRecorder = () => {
                   <div
                     style={{
                       ...styles.pointer,
-                      left: `${((pitch - 85) / (255 - 85)) * 100}%`,
+                      left: `${Math.max(0, Math.min(100, ((Math.max(85, pitch) - 85) / (255 - 85)) * 100))}%`,
                       backgroundColor: getVoiceColor(pitch)
                     }}
                   />
