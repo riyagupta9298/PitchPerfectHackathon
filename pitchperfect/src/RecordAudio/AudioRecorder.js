@@ -35,11 +35,14 @@ const AudioRecorder = () => {
   // State for transcription
   const [realtimeTranscript, setRealtimeTranscript] = useState("");  // Current speech-to-text
   const [finalTranscript, setFinalTranscript] = useState("");        // Completed transcription
-  const [transcripts, setTranscripts] = useState([]);                // Array of all transcripts
-  const [interimResult, setInterimResult] = useState('');
+  // State for transcript management
+  const [transcripts, setTranscripts] = useState([]);                // Array of all processed transcripts with metadata
+  // State for voice activity detection
+  const [lastSpeechTime, setLastSpeechTime] = useState(0);          // Timestamp of last detected speech
+  const [isSpeaking, setIsSpeaking] = useState(false);              // Current speaking state
+  const [lastProcessedText, setLastProcessedText] = useState("");   // Last text that was processed to avoid duplication
 
   // Refs for maintaining values between renders
-  const transcriptBufferRef = useRef("");                // Stores ongoing transcription
   const mediaRecorderRef = useRef(null);                 // Reference to MediaRecorder instance
   const audioContextRef = useRef(null);                  // Reference to AudioContext
   const analyserRef = useRef(null);                      // Reference to AnalyserNode
@@ -50,9 +53,65 @@ const AudioRecorder = () => {
   const isFirstTranscriptRef = useRef(true);            // Flag for first transcript
   const accumulatedTextRef = useRef('');                 // Stores accumulated interim results
   const previousInterimRef = useRef('');
+  const pendingTranscriptRef = useRef('');               // Stores text waiting to be committed during pause
+  const speechTimeoutRef = useRef(null);                // Timeout for speech pause detection
+  const lastTranscriptRef = useRef('');                 // Stores the last transcript to avoid duplication
+
+  // Restart recognition function with error handling
+  const restartRecognitionRef = useRef(() => {});
 
   // Effect for Web Speech API initialization
   useEffect(() => {
+    // Define restart recognition function inside the effect to avoid dependency issues
+    const restartRecognition = () => {
+      if (!recognitionRef.current || !isRecording) return;
+
+      // Track recognition state to prevent "already started" errors
+      const recognitionState = recognitionRef.current.state || 'inactive';
+
+      // Only try to stop if it's not already stopped
+      if (recognitionState !== 'inactive') {
+        try {
+          recognitionRef.current.stop();
+          console.log("Recognition stopped for restart");
+        } catch (e) {
+          console.log("Error stopping recognition:", e);
+        }
+      }
+
+      // Wait a bit before starting again
+      setTimeout(() => {
+        if (!isRecording) return;
+
+        try {
+          // Check if recognition is already running
+          const currentState = recognitionRef.current.state || 'inactive';
+          if (currentState === 'inactive') {
+            console.log("Starting recognition after restart");
+            recognitionRef.current.start();
+          } else {
+            console.log("Recognition already running, skipping start");
+          }
+        } catch (e) {
+          console.log("Error starting recognition:", e);
+          // If start fails, try one more time after a longer delay
+          setTimeout(() => {
+            if (isRecording) {
+              try {
+                recognitionRef.current.start();
+              } catch (error) {
+                console.error("Final attempt to restart recognition failed:", error);
+                setStatus("Recognition failed - please stop and start again");
+              }
+            }
+          }, 1000);
+        }
+      }, 300); // Increased delay for better reliability
+    };
+
+    // Store the function in a ref so it can be accessed outside the effect
+    restartRecognitionRef.current = restartRecognition;
+
     if ('webkitSpeechRecognition' in window) {
       recognitionRef.current = new window.webkitSpeechRecognition();
 
@@ -71,7 +130,7 @@ const AudioRecorder = () => {
         watchdogTimer = setTimeout(() => {
           if (isRecording) {
             console.log("Watchdog: Restarting recognition due to inactivity");
-            restartRecognition();
+            restartRecognitionRef.current();
           }
         }, WATCHDOG_TIMEOUT);
       };
@@ -112,20 +171,55 @@ const AudioRecorder = () => {
               accumulatedTextRef.current = finalText;
               previousInterimRef.current = '';
 
-              // Split into sentences more accurately
-              const sentences = finalText.match(/[^.!?]+[.!?]+/g) || [];
-              if (sentences.length > 0) {
-                sentences.forEach(sentence => {
-                  const cleanSentence = sentence.trim();
-                  if (cleanSentence && cleanSentence.length > 5) { // Minimum length check
-                    setTranscripts(prev => [...prev, cleanSentence]);
-                  }
-                });
-                
-                // Keep remaining text that's not a complete sentence
-                const remainingText = finalText.replace(/[^.!?]+[.!?]+/g, '').trim();
-                accumulatedTextRef.current = remainingText + ' ';
+              // Update the pending transcript with the final text
+              pendingTranscriptRef.current = finalText;
+
+              // Mark as speaking and update last speech time
+              setIsSpeaking(true);
+              setLastSpeechTime(Date.now());
+
+              // Reset the speech pause detection timeout
+              if (speechTimeoutRef.current) {
+                clearTimeout(speechTimeoutRef.current);
               }
+
+              // Set a timeout to detect pause in speech
+              speechTimeoutRef.current = setTimeout(() => {
+                // If we have pending transcript text when the pause is detected
+                if (pendingTranscriptRef.current.trim()) {
+                  const cleanText = pendingTranscriptRef.current.trim();
+
+                  // Check if this text is new or significantly different from the last processed text
+                  // to avoid duplication
+                  if (cleanText.length > 5 && !isDuplicateText(cleanText, lastTranscriptRef.current)) { // Minimum length check
+                    // Extract only the new content that wasn't in the previous transcript
+                    const newContent = extractNewContent(cleanText, lastTranscriptRef.current);
+
+                    if (newContent.trim().length > 0) {
+                      // Add transcript with timestamp and confidence score
+                      const newTranscript = {
+                        text: newContent,
+                        timestamp: new Date().toISOString(),
+                        confidence: result[0].confidence || 0.8
+                      };
+                      setTranscripts(prev => [...prev, newTranscript]);
+
+                      // Update the last processed text to avoid duplication
+                      lastTranscriptRef.current = cleanText;
+                      setLastProcessedText(cleanText);
+                    }
+                  }
+
+                  // Clear the pending transcript
+                  pendingTranscriptRef.current = '';
+                }
+
+                // Mark as not speaking
+                setIsSpeaking(false);
+              }, 1500); // 1.5 seconds of silence is considered a pause
+
+              // Keep the accumulated text for context
+              accumulatedTextRef.current = finalText;
 
               setFinalTranscript(finalText);
             } else {
@@ -133,64 +227,117 @@ const AudioRecorder = () => {
               const confidence = result[0].confidence;
               if (confidence > 0.7) { // Only use high-confidence interim results
                 currentInterim = transcript;
-                
+
                 // Smooth connection with previous interim
                 if (previousInterimRef.current) {
                   const overlap = findOverlap(previousInterimRef.current, currentInterim);
                   currentInterim = currentInterim.slice(overlap);
                 }
-                
+
                 previousInterimRef.current = currentInterim;
+
+                // Update speaking state and last speech time
+                setIsSpeaking(true);
+                setLastSpeechTime(Date.now());
+
+                // Reset the speech pause detection timeout
+                if (speechTimeoutRef.current) {
+                  clearTimeout(speechTimeoutRef.current);
+                }
+
+                // Set a new timeout to detect pause
+                speechTimeoutRef.current = setTimeout(() => {
+                  // If we have pending transcript text when the pause is detected
+                  if (pendingTranscriptRef.current.trim()) {
+                    const cleanText = pendingTranscriptRef.current.trim();
+
+                    // Check if this text is new or significantly different from the last processed text
+                    // to avoid duplication
+                    if (cleanText.length > 5 && !isDuplicateText(cleanText, lastTranscriptRef.current)) { // Minimum length check
+                      // Extract only the new content that wasn't in the previous transcript
+                      const newContent = extractNewContent(cleanText, lastTranscriptRef.current);
+
+                      if (newContent.trim().length > 0) {
+                        // Add transcript with timestamp and confidence score
+                        const newTranscript = {
+                          text: newContent,
+                          timestamp: new Date().toISOString(),
+                          confidence: confidence || 0.7
+                        };
+                        setTranscripts(prev => [...prev, newTranscript]);
+
+                        // Update the last processed text to avoid duplication
+                        lastTranscriptRef.current = cleanText;
+                        setLastProcessedText(cleanText);
+                      }
+                    }
+
+                    // Clear the pending transcript
+                    pendingTranscriptRef.current = '';
+                  }
+
+                  // Mark as not speaking
+                  setIsSpeaking(false);
+                }, 1500); // 1.5 seconds of silence is considered a pause
               }
             }
           }
 
           setRealtimeTranscript(currentInterim);
-          setInterimResult(currentInterim);
-
         } catch (error) {
           console.error("Error processing speech result:", error);
-          restartRecognition();
+          restartRecognitionRef.current();
         }
       };
 
       // Enhanced error handling
       recognitionRef.current.onerror = (event) => {
         console.error('Speech recognition error:', event.error);
-        
+
         switch (event.error) {
           case 'network':
             setStatus("Network error - retrying...");
-            setTimeout(restartRecognition, RESTART_DELAY);
+            setTimeout(restartRecognitionRef.current, RESTART_DELAY);
             break;
           case 'audio-capture':
             setStatus("Audio capture error - retrying...");
-            setTimeout(restartRecognition, RESTART_DELAY);
+            setTimeout(restartRecognitionRef.current, RESTART_DELAY);
             break;
           case 'no-speech':
             setStatus("No speech detected - continuing...");
-            restartRecognition();
+            restartRecognitionRef.current();
             break;
           case 'aborted':
             if (isRecording) {
               setStatus("Recognition aborted - restarting...");
-              restartRecognition();
+              restartRecognitionRef.current();
             }
             break;
           default:
             if (isRecording) {
               setStatus("Error occurred - restarting...");
-              restartRecognition();
+              restartRecognitionRef.current();
             }
         }
       };
 
-      // Improved restart handling
+      // Improved restart handling with state checking
       recognitionRef.current.onend = () => {
         if (isRecording) {
           setTimeout(() => {
             if (isRecording) {
-              recognitionRef.current.start();
+              try {
+                // Check if recognition is already running before starting
+                const currentState = recognitionRef.current.state || 'inactive';
+                if (currentState === 'inactive') {
+                  console.log("Starting recognition after end event");
+                  recognitionRef.current.start();
+                } else {
+                  console.log("Recognition already running after end event, skipping start");
+                }
+              } catch (e) {
+                console.error("Error restarting recognition after end:", e);
+              }
             }
           }, RESTART_DELAY);
         }
@@ -208,13 +355,13 @@ const AudioRecorder = () => {
   // Helper function to find overlap between strings
   const findOverlap = (str1, str2) => {
     if (!str1 || !str2) return 0;
-    
+
     const words1 = str1.trim().split(' ');
     const words2 = str2.trim().split(' ');
-    
+
     let overlap = 0;
     const minLength = Math.min(words1.length, words2.length);
-    
+
     for (let i = 1; i <= minLength; i++) {
       const end1 = words1.slice(-i).join(' ');
       const start2 = words2.slice(0, i).join(' ');
@@ -222,56 +369,118 @@ const AudioRecorder = () => {
         overlap = start2.length;
       }
     }
-    
+
     return overlap;
   };
 
-  // Enhanced clear function
+  // Helper function to check if a text is a duplicate or very similar to another
+  const isDuplicateText = (newText, oldText) => {
+    if (!oldText) return false;
+    if (newText === oldText) return true;
+
+    // Check if the new text is just a small addition to the old text
+    if (oldText.length > 0 && newText.startsWith(oldText) &&
+        (newText.length - oldText.length) < 10) {
+      return true;
+    }
+
+    // Check similarity ratio
+    const similarity = calculateSimilarity(newText, oldText);
+    return similarity > 0.85; // If more than 85% similar, consider it a duplicate
+  };
+
+  // Helper function to calculate similarity between two strings
+  const calculateSimilarity = (str1, str2) => {
+    if (!str1 || !str2) return 0;
+    if (str1 === str2) return 1.0;
+
+    const words1 = str1.toLowerCase().split(/\s+/);
+    const words2 = str2.toLowerCase().split(/\s+/);
+
+    const set1 = new Set(words1);
+    const set2 = new Set(words2);
+
+    // Count common words
+    let commonCount = 0;
+    for (const word of set1) {
+      if (set2.has(word)) commonCount++;
+    }
+
+    // Jaccard similarity
+    const union = set1.size + set2.size - commonCount;
+    return union === 0 ? 0 : commonCount / union;
+  };
+
+  // Helper function to extract only new content from text
+  const extractNewContent = (newText, oldText) => {
+    if (!oldText) return newText;
+    if (newText === oldText) return '';
+
+    // If new text starts with old text, return only the new part
+    if (newText.startsWith(oldText)) {
+      return newText.substring(oldText.length).trim();
+    }
+
+    // If there's significant overlap, extract only the new part
+    const words1 = oldText.split(' ');
+    const words2 = newText.split(' ');
+
+    // Find the longest common prefix
+    let prefixLength = 0;
+    for (let i = 0; i < Math.min(words1.length, words2.length); i++) {
+      if (words1[i] === words2[i]) {
+        prefixLength++;
+      } else {
+        break;
+      }
+    }
+
+    // If there's a significant common prefix, return only the new part
+    if (prefixLength > 0 && prefixLength >= words1.length * 0.5) {
+      return words2.slice(prefixLength).join(' ');
+    }
+
+    // Otherwise return the full new text
+    return newText;
+  };
+
+  // Enhanced clear function with improved transcript management
   const clearTranscripts = () => {
     setFinalTranscript('');
     setRealtimeTranscript('');
-    setInterimResult('');
-    setTranscripts([]);
+    setTranscripts([]);  // Clear all transcript data
     accumulatedTextRef.current = '';
     previousInterimRef.current = '';
+    pendingTranscriptRef.current = '';
+    lastTranscriptRef.current = '';
+    setLastProcessedText('');
     isFirstTranscriptRef.current = true;
-  };
-
-  // Restart recognition function with error handling
-  const restartRecognition = () => {
-    if (!recognitionRef.current || !isRecording) return;
-
-    try {
-      recognitionRef.current.stop();
-    } catch (e) {
-      console.log("Error stopping recognition:", e);
-    }
-
-    try {
-      setTimeout(() => {
-        if (isRecording) {
-          recognitionRef.current.start();
-        }
-      }, 100);
-    } catch (e) {
-      console.log("Error starting recognition:", e);
-      // If start fails, try one more time after a longer delay
-      setTimeout(() => {
-        if (isRecording) {
-          try {
-            recognitionRef.current.start();
-          } catch (error) {
-            console.error("Final attempt to restart recognition failed:", error);
-            setStatus("Recognition failed - please stop and start again");
-          }
-        }
-      }, 1000);
+    setIsSpeaking(false);
+    setLastSpeechTime(0);
+    if (speechTimeoutRef.current) {
+      clearTimeout(speechTimeoutRef.current);
+      speechTimeoutRef.current = null;
     }
   };
+
+
 
   // Pitch detection setup
   const setupPitchDetection = (stream) => {
-    audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
+    // Use standard AudioContext with fallback for older browsers
+    try {
+      // Using a safer approach to handle browser compatibility
+      if (typeof window.AudioContext !== 'undefined') {
+        audioContextRef.current = new window.AudioContext();
+      } else {
+        // Fallback for Safari and older browsers
+        // We use bracket notation to avoid TypeScript warnings
+        audioContextRef.current = new window['webkitAudioContext']();
+      }
+    } catch (err) {
+      console.error("AudioContext not supported in this browser", err);
+      return;
+    }
     analyserRef.current = audioContextRef.current.createAnalyser();
     const source = audioContextRef.current.createMediaStreamSource(stream);
 
@@ -434,7 +643,7 @@ const AudioRecorder = () => {
 
   useEffect(() => {
     if (timer > 0 && timer % 30 === 0) {
-      sendAudioChunk();
+      //sendAudioChunk();
     }
   }, [timer]);
 
@@ -467,7 +676,7 @@ const AudioRecorder = () => {
       };
 
       mediaRecorder.onstop = () => {
-        sendAudioChunk(true);
+        //sendAudioChunk(true);
         const fullBlob = new Blob(fullRecordingChunks.current, { type: "audio/webm" });
         const url = URL.createObjectURL(fullBlob);
         setDownloadUrl(url);
@@ -489,14 +698,28 @@ const AudioRecorder = () => {
 
       if (recognitionRef.current) {
         try {
-          recognitionRef.current.start();
+          // Check if recognition is already running before starting
+          const currentState = recognitionRef.current.state || 'inactive';
+          if (currentState === 'inactive') {
+            console.log("Starting initial recognition");
+            recognitionRef.current.start();
+          } else {
+            console.log("Recognition already running, skipping initial start");
+          }
         } catch (e) {
           console.error("Error starting initial recognition:", e);
           setTimeout(() => {
             if (isRecording) {
-              recognitionRef.current.start();
+              try {
+                const retryState = recognitionRef.current.state || 'inactive';
+                if (retryState === 'inactive') {
+                  recognitionRef.current.start();
+                }
+              } catch (retryError) {
+                console.error("Retry failed:", retryError);
+              }
             }
-          }, 100);
+          }, 300);
         }
       }
     } catch (error) {
@@ -535,7 +758,14 @@ const AudioRecorder = () => {
         setStatus(onStop ? "Final chunk uploaded ✅" : "Chunk sent ✔️");
         const result = await response.json();
         if (result.transcript) {
-          setTranscripts(prev => [...prev, result.transcript]);
+          // Add server-processed transcript with timestamp
+          const newTranscript = {
+            text: result.transcript,
+            timestamp: new Date().toISOString(),
+            confidence: result.confidence || 0.9,
+            source: 'server'
+          };
+          setTranscripts(prev => [...prev, newTranscript]);
         }
       } else {
         setStatus("Upload failed ❌");
@@ -606,6 +836,7 @@ const AudioRecorder = () => {
               <div style={styles.transcriptBox}>
                 <div style={styles.finalTranscript}>{finalTranscript}</div>
                 <div style={styles.interimTranscript}>{realtimeTranscript}</div>
+                {isSpeaking && <div style={styles.speakingIndicator}>Speaking...</div>}
               </div>
             </div>
           </div>
@@ -636,8 +867,22 @@ const AudioRecorder = () => {
       <div style={styles.fullTranscriptContainer}>
         <h3 style={styles.transcriptTitle}>Full Transcript</h3>
         <div style={styles.fullTranscriptBox}>
-          {transcripts.map((text, index) => (
-            <p key={index} style={styles.transcriptLine}>{text}</p>
+          {transcripts.map((transcript, index) => (
+            <div key={index} style={styles.transcriptLine}>
+              <p style={styles.transcriptText}>{transcript.text || transcript}</p>
+              {transcript.timestamp && (
+                <div style={styles.transcriptMeta}>
+                  <span style={styles.transcriptTime}>
+                    {new Date(transcript.timestamp).toLocaleTimeString()}
+                  </span>
+                  {transcript.confidence && (
+                    <span style={styles.confidenceIndicator}>
+                      Confidence: {Math.round(transcript.confidence * 100)}%
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
           ))}
         </div>
       </div>
@@ -839,6 +1084,13 @@ const styles = {
     color: '#666',
     fontStyle: 'italic',
   },
+  speakingIndicator: {
+    color: '#28a745',
+    fontSize: '12px',
+    fontWeight: 'bold',
+    marginTop: '8px',
+    textAlign: 'right',
+  },
   transcriptLine: {
     margin: '8px 0',
     padding: '8px',
@@ -847,19 +1099,29 @@ const styles = {
     borderRadius: '4px',
     boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
   },
-  // ... (keep all existing styles)
-  
-  // Update existing transcriptLine style
-  transcriptLine: {
-    margin: '8px 0',
-    padding: '8px',
-    borderBottom: '1px solid #eee',
-    backgroundColor: '#fff',
-    borderRadius: '4px',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+  // Additional styles for improved transcript display
+  transcriptText: {
+    margin: '0 0 5px 0',
+    fontSize: '14px',
+    lineHeight: '1.4',
   },
-  
-  // Update existing container style to remove the margin
+  transcriptMeta: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    fontSize: '11px',
+    color: '#888',
+    marginTop: '4px',
+  },
+  transcriptTime: {
+    fontStyle: 'italic',
+  },
+  confidenceIndicator: {
+    padding: '1px 5px',
+    borderRadius: '3px',
+    backgroundColor: '#f0f0f0',
+  },
+
+  // Container style without margin
   container: {
     padding: 20,
     background: "#fff",
