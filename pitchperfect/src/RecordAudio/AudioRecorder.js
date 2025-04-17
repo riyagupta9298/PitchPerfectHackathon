@@ -1,272 +1,313 @@
-// Import necessary React hooks
-import React, { useEffect, useRef, useState } from "react";
 
-// Define voice frequency ranges for different voice types (in Hertz)
-const VOICE_RANGES = {
-  BASS: { min: 85, max: 155, label: 'Bass' },      // Deep male voice range
-  TENOR: { min: 156, max: 180, label: 'Tenor' },   // High male voice range
-  ALTO: { min: 181, max: 215, label: 'Alto' },     // Low female voice range
-  SOPRANO: { min: 216, max: 255, label: 'Soprano' } // High female voice range
+// Import necessary React hooks
+import React, { useEffect, useRef, useState, useCallback } from "react";
+
+// Define constants for fine-tuning speech recognition behavior
+const RECOGNITION_SETTINGS = {
+  PAUSE_THRESHOLD: 1000,      // Time in ms to wait before considering a pause in speech
+  RESTART_DELAY: 300,         // Time in ms to wait before restarting recognition after an error
+  MIN_CONFIDENCE: 0.5,        // Minimum confidence score to accept a recognition result
+  MAX_SEGMENT_LENGTH: 200,    // Maximum length of a text segment before forcing a break
+  MIN_PAUSE_DURATION: 500     // Minimum duration in ms to consider as an intentional pause
 };
 
-// Minimum decibel level to consider as valid sound (below this is considered noise)
-const NOISE_THRESHOLD = 50; // dBFS (decibels relative to full scale)
+// Voice frequency ranges
+const MIN_VALID_FREQUENCY = 50;   // Hz
+const MAX_VALID_FREQUENCY = 1500; // Hz
 
-// Valid frequency range for human voice detection
-const MIN_VALID_FREQUENCY = 85;   // Lowest detectable frequency
-const MAX_VALID_FREQUENCY = 255;  // Highest detectable frequency
-
-// Size of buffer for smoothing pitch measurements
-const PITCH_BUFFER_SIZE = 5;      // Higher values = smoother but more latency
-
-const RESTART_DELAY = 50; // milliseconds delay for recognition restart
+const VOICE_RANGES = {
+  BASS: { min: 80, max: 240, label: 'Bass' },
+  TENOR: { min: 130, max: 400, label: 'Tenor' },
+  ALTO: { min: 220, max: 660, label: 'Alto' },
+  SOPRANO: { min: 260, max: 1000, label: 'Soprano' }
+};
 
 const AudioRecorder = () => {
-  // State for recording control
-  const [isRecording, setIsRecording] = useState(false);  // Controls recording state
-  const [timer, setTimer] = useState(0);                  // Tracks recording duration
-  const [status, setStatus] = useState("Idle");          // Shows current recorder status
-  const [downloadUrl, setDownloadUrl] = useState(null);   // URL for downloaded audio file
+  // State management
+  const [isRecording, setIsRecording] = useState(false);
+  const [realtimeTranscript, setRealtimeTranscript] = useState("");
+  const [finalTranscript, setFinalTranscript] = useState("");
+  const [transcripts, setTranscripts] = useState([]);
+  const [status, setStatus] = useState("");
+  const [timer, setTimer] = useState(0);
+  const [downloadUrl, setDownloadUrl] = useState(null);
+  
+  // Refs
+  const recognitionRef = useRef(null);
+  const pauseTimerRef = useRef(null);
+  const lastProcessedRef = useRef('');
+  const accumulatedTextRef = useRef('');
+  const isProcessingRef = useRef(false);
+  const mediaRecorderRef = useRef(null);
+  const intervalRef = useRef(null);
+  const audioChunks = useRef([]);
+  const fullRecordingChunks = useRef([]);
+  const isFirstTranscriptRef = useRef(true);
+  const audioContextRef = useRef(null);
+  const analyserRef = useRef(null);
 
-  // State for pitch detection
-  const [pitch, setPitch] = useState(0);                  // Current detected pitch
-  const [pitchBuffer, setPitchBuffer] = useState(Array(PITCH_BUFFER_SIZE).fill(0));  // Buffer for pitch smoothing
+  // Add new refs for watchdog
+  const lastResultTimestampRef = useRef(Date.now());
+  const watchdogTimerRef = useRef(null);
+  
+  // Add watchdog constants
+  const WATCHDOG_SETTINGS = {
+    MAX_SILENCE_DURATION: 5000,    // Max time (ms) without results before restart
+    CHECK_INTERVAL: 2000,          // How often to check for stuck recognition
+  };
 
-  // State for transcription
-  const [realtimeTranscript, setRealtimeTranscript] = useState("");  // Current speech-to-text
-  const [finalTranscript, setFinalTranscript] = useState("");        // Completed transcription
-  const [transcripts, setTranscripts] = useState([]);                // Array of all transcripts
-  const [interimResult, setInterimResult] = useState('');
+  // Define restartRecognition first
+  const restartRecognition = useCallback(() => {
+    if (!recognitionRef.current || !isRecording) return;
 
-  // Refs for maintaining values between renders
-  const transcriptBufferRef = useRef("");                // Stores ongoing transcription
-  const mediaRecorderRef = useRef(null);                 // Reference to MediaRecorder instance
-  const audioContextRef = useRef(null);                  // Reference to AudioContext
-  const analyserRef = useRef(null);                      // Reference to AnalyserNode
-  const audioChunks = useRef([]);                        // Stores audio chunks for current segment
-  const fullRecordingChunks = useRef([]);               // Stores all audio chunks
-  const intervalRef = useRef(null);                      // Reference for timer interval
-  const recognitionRef = useRef(null);                   // Reference to speech recognition
-  const isFirstTranscriptRef = useRef(true);            // Flag for first transcript
-  const accumulatedTextRef = useRef('');                 // Stores accumulated interim results
-  const previousInterimRef = useRef('');
-
-  // Effect for Web Speech API initialization
-  useEffect(() => {
-    if ('webkitSpeechRecognition' in window) {
-      recognitionRef.current = new window.webkitSpeechRecognition();
-
-      // Improved recognition settings
-      recognitionRef.current.continuous = true;
-      recognitionRef.current.interimResults = true;
-      recognitionRef.current.maxAlternatives = 3;  // Get more alternatives
-      recognitionRef.current.lang = 'en-IN';
-
-      // Add watchdog timer to detect and recover from hangs
-      let watchdogTimer = null;
-      const WATCHDOG_TIMEOUT = 3000; // 3 seconds
-
-      const resetWatchdog = () => {
-        if (watchdogTimer) clearTimeout(watchdogTimer);
-        watchdogTimer = setTimeout(() => {
-          if (isRecording) {
-            console.log("Watchdog: Restarting recognition due to inactivity");
-            restartRecognition();
-          }
-        }, WATCHDOG_TIMEOUT);
-      };
-
-      recognitionRef.current.onstart = () => {
-        console.log("Recognition started");
-        resetWatchdog();
-      };
-
-      recognitionRef.current.onaudiostart = () => {
-        console.log("Audio capturing started");
-        resetWatchdog();
-      };
-
-      recognitionRef.current.onresult = (event) => {
-        resetWatchdog();
-        let currentInterim = '';
-        let finalText = '';
-
-        try {
-          // Process all results with improved accuracy
-          for (let i = event.resultIndex; i < event.results.length; i++) {
-            const result = event.results[i];
-            const transcript = result[0].transcript;
-
-            if (result.isFinal) {
-              // Handle final results
-              if (isFirstTranscriptRef.current) {
-                finalText = transcript;
-                isFirstTranscriptRef.current = false;
-              } else {
-                // Ensure smooth connection with previous text
-                const prevText = accumulatedTextRef.current;
-                const overlap = findOverlap(prevText, transcript);
-                finalText = prevText + transcript.slice(overlap);
-              }
-
-              accumulatedTextRef.current = finalText;
-              previousInterimRef.current = '';
-
-              // Split into sentences more accurately
-              const sentences = finalText.match(/[^.!?]+[.!?]+/g) || [];
-              if (sentences.length > 0) {
-                sentences.forEach(sentence => {
-                  const cleanSentence = sentence.trim();
-                  if (cleanSentence && cleanSentence.length > 5) { // Minimum length check
-                    setTranscripts(prev => [...prev, cleanSentence]);
-                  }
-                });
-                
-                // Keep remaining text that's not a complete sentence
-                const remainingText = finalText.replace(/[^.!?]+[.!?]+/g, '').trim();
-                accumulatedTextRef.current = remainingText + ' ';
-              }
-
-              setFinalTranscript(finalText);
-            } else {
-              // Handle interim results
-              const confidence = result[0].confidence;
-              if (confidence > 0.7) { // Only use high-confidence interim results
-                currentInterim = transcript;
-                
-                // Smooth connection with previous interim
-                if (previousInterimRef.current) {
-                  const overlap = findOverlap(previousInterimRef.current, currentInterim);
-                  currentInterim = currentInterim.slice(overlap);
-                }
-                
-                previousInterimRef.current = currentInterim;
-              }
-            }
-          }
-
-          setRealtimeTranscript(currentInterim);
-          setInterimResult(currentInterim);
-
-        } catch (error) {
-          console.error("Error processing speech result:", error);
-          restartRecognition();
-        }
-      };
-
-      // Enhanced error handling
-      recognitionRef.current.onerror = (event) => {
-        console.error('Speech recognition error:', event.error);
-        
-        switch (event.error) {
-          case 'network':
-            setStatus("Network error - retrying...");
-            setTimeout(restartRecognition, RESTART_DELAY);
-            break;
-          case 'audio-capture':
-            setStatus("Audio capture error - retrying...");
-            setTimeout(restartRecognition, RESTART_DELAY);
-            break;
-          case 'no-speech':
-            setStatus("No speech detected - continuing...");
-            restartRecognition();
-            break;
-          case 'aborted':
-            if (isRecording) {
-              setStatus("Recognition aborted - restarting...");
-              restartRecognition();
-            }
-            break;
-          default:
-            if (isRecording) {
-              setStatus("Error occurred - restarting...");
-              restartRecognition();
-            }
-        }
-      };
-
-      // Improved restart handling
-      recognitionRef.current.onend = () => {
-        if (isRecording) {
-          setTimeout(() => {
-            if (isRecording) {
-              recognitionRef.current.start();
-            }
-          }, RESTART_DELAY);
-        }
-      };
-
-      return () => {
-        if (watchdogTimer) clearTimeout(watchdogTimer);
-        if (recognitionRef.current) {
-          recognitionRef.current.stop();
-        }
-      };
+    try {
+      recognitionRef.current.stop();
+    } catch (e) {
+      console.warn('Error stopping recognition:', e);
     }
+
+    setTimeout(() => {
+      if (isRecording && recognitionRef.current) {
+        try {
+          if (recognitionRef.current.state === 'ended') {
+            recognitionRef.current.start();
+            setStatus('Recording resumed');
+          } else {
+            console.log('Recognition already running, skipping restart');
+          }
+        } catch (e) {
+          console.error('Error restarting recognition:', e);
+          if (e.name === 'InvalidStateError') {
+            try {
+              recognitionRef.current.stop();
+              setTimeout(() => {
+                recognitionRef.current.start();
+                console.log('Recognition restarted after force stop');
+              }, 100);
+            } catch (stopError) {
+              console.error('Error during force restart:', stopError);
+            }
+          }
+          setStatus('Trying to reconnect...');
+        }
+      }
+    }, RECOGNITION_SETTINGS.RESTART_DELAY);
   }, [isRecording]);
 
-  // Helper function to find overlap between strings
-  const findOverlap = (str1, str2) => {
-    if (!str1 || !str2) return 0;
+  // Then define startWatchdogTimer
+  const startWatchdogTimer = useCallback(() => {
+    if (watchdogTimerRef.current) {
+      clearInterval(watchdogTimerRef.current);
+    }
+
+    watchdogTimerRef.current = setInterval(() => {
+      const timeSinceLastResult = Date.now() - lastResultTimestampRef.current;
+      
+      if (timeSinceLastResult > WATCHDOG_SETTINGS.MAX_SILENCE_DURATION && isRecording) {
+        console.log('Recognition appears stuck, forcing restart...', new Date());
+        restartRecognition();
+      }
+    }, WATCHDOG_SETTINGS.CHECK_INTERVAL);
+  }, [isRecording, restartRecognition]);
+
+  // Then define processTranscript
+  const processTranscript = useCallback((transcript, isFinal, confidence = 0) => {
+    if (isProcessingRef.current) return;
+    isProcessingRef.current = true;
+
+    try {
+      // Clean transcript
+      let cleanTranscript = transcript
+        .trim()
+        .replace(/\s+/g, ' ')
+        .replace(/^\s+|\s+$/g, '')
+        .replace(/[^\w\s.,!?-]/g, '')
+        .replace(/(\s*[.,!?]+\s*)/g, '$1');
+
+      // Check for overlap with previous text
+      const overlap = findSmartOverlap(lastProcessedRef.current, cleanTranscript);
+      cleanTranscript = cleanTranscript.slice(overlap);
+
+      if (isFinal) {
+        // Update final transcript
+        setFinalTranscript(prev => {
+          const newTranscript = prev + cleanTranscript + ' ';
+          lastProcessedRef.current = newTranscript;
+          return newTranscript;
+        });
+
+        // Add to transcripts array with metadata
+        setTranscripts(prev => [
+          ...prev,
+          {
+            text: formatSentence(cleanTranscript),
+            timestamp: Date.now(),
+            confidence: confidence
+          }
+        ]);
+      } else {
+        setRealtimeTranscript(formatRealtimeText(cleanTranscript));
+      }
+    } finally {
+      isProcessingRef.current = false;
+    }
+  }, []);
+
+  // Then define handleRecognitionResult
+  const handleRecognitionResult = useCallback((event) => {
+    lastResultTimestampRef.current = Date.now();
+
+    if (pauseTimerRef.current) {
+      clearTimeout(pauseTimerRef.current);
+    }
+
+    const result = event.results[event.resultIndex];
+    const transcript = result[0].transcript;
+    const confidence = result[0].confidence;
+
+    processTranscript(transcript, result.isFinal, confidence);
+
+    pauseTimerRef.current = setTimeout(() => {
+      if (realtimeTranscript) {
+        processTranscript(realtimeTranscript, true, 1);
+        setRealtimeTranscript('');
+      }
+    }, RECOGNITION_SETTINGS.PAUSE_THRESHOLD);
+  }, [realtimeTranscript, processTranscript]);
+
+  // Setup speech recognition when component mounts or recording state changes
+  useEffect(() => {
+    if (!('webkitSpeechRecognition' in window)) {
+      console.error('Speech recognition not supported');
+      setStatus('Speech recognition not supported in this browser');
+      return;
+    }
+
+    const recognition = new window.webkitSpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.maxAlternatives = 3;
+    recognition.lang = 'en-IN';
+
+    let restartTimeout = null;
+
+    recognition.onstart = () => {
+      console.log('Recognition started', new Date());
+      setStatus('बोलना शुरू करें... (Start speaking...)');
+      lastResultTimestampRef.current = Date.now();
+      startWatchdogTimer();
+    };
+
+    recognition.onresult = handleRecognitionResult;
+    recognition.onerror = (event) => {
+      console.error('Recognition error:', new Date(), event.error);
+      setStatus(`Error: ${event.error}. कृपया पुनः प्रयास करें (Please try again)`);
+      
+      if (isRecording) {
+        restartTimeout = setTimeout(() => restartRecognition(), RECOGNITION_SETTINGS.RESTART_DELAY);
+      }
+    };
+
+    recognition.onend = () => {
+      console.log('Recognition ended', new Date());
+      if (isRecording) {
+        restartTimeout = setTimeout(() => restartRecognition(), RECOGNITION_SETTINGS.RESTART_DELAY);
+      }
+    };
+
+    recognitionRef.current = recognition;
+
+    return () => {
+      if (restartTimeout) clearTimeout(restartTimeout);
+      if (watchdogTimerRef.current) clearInterval(watchdogTimerRef.current);
+      if (pauseTimerRef.current) clearTimeout(pauseTimerRef.current);
+      try {
+        recognition.stop();
+      } catch (e) {
+        console.warn('Error stopping recognition:', e);
+      }
+    };
+  }, [isRecording, handleRecognitionResult, startWatchdogTimer, restartRecognition]);
+
+  // Smart overlap detection
+  const findSmartOverlap = (prev, current) => {
+    if (!prev || !current) return 0;
     
-    const words1 = str1.trim().split(' ');
-    const words2 = str2.trim().split(' ');
+    const words1 = prev.trim().split(' ');
+    const words2 = current.trim().split(' ');
     
-    let overlap = 0;
+    let maxOverlap = 0;
     const minLength = Math.min(words1.length, words2.length);
     
     for (let i = 1; i <= minLength; i++) {
       const end1 = words1.slice(-i).join(' ');
       const start2 = words2.slice(0, i).join(' ');
       if (end1 === start2) {
-        overlap = start2.length;
+        maxOverlap = start2.length;
       }
     }
     
-    return overlap;
+    return maxOverlap;
+  };
+
+  // Enhanced text segmentation
+  const segmentText = (text) => {
+    const segments = [];
+    let currentSegment = '';
+    
+    // Split into potential segments
+    const words = text.split(/\s+/);
+    
+    for (const word of words) {
+      currentSegment += (currentSegment ? ' ' : '') + word;
+      
+      // Check for natural break points
+      if (
+        /[.!?]+$/.test(word) ||                    // End of sentence
+        currentSegment.length >= 100 ||            // Length limit
+        /[,;:]$/.test(word) ||                     // Natural pause
+        /^(and|but|or|so|because)$/i.test(word)    // Conjunctions
+      ) {
+        if (currentSegment.trim()) {
+          segments.push(currentSegment.trim());
+          currentSegment = '';
+        }
+      }
+    }
+    
+    // Add any remaining text
+    if (currentSegment.trim()) {
+      segments.push(currentSegment.trim());
+    }
+    
+    return segments;
+  };
+
+  // Format sentence with proper capitalization and spacing
+  const formatSentence = (sentence) => {
+    return sentence
+      .trim()
+      .replace(/^\w/, c => c.toUpperCase())
+      .replace(/\s+/g, ' ')
+      .trim();
+  };
+
+  // Format realtime text for display
+  const formatRealtimeText = (text) => {
+    return text
+      .trim()
+      .replace(/\s+/g, ' ')
+      .replace(/^\w/, c => c.toUpperCase());
   };
 
   // Enhanced clear function
   const clearTranscripts = () => {
     setFinalTranscript('');
     setRealtimeTranscript('');
-    setInterimResult('');
     setTranscripts([]);
     accumulatedTextRef.current = '';
-    previousInterimRef.current = '';
+    lastProcessedRef.current = '';
     isFirstTranscriptRef.current = true;
-  };
-
-  // Restart recognition function with error handling
-  const restartRecognition = () => {
-    if (!recognitionRef.current || !isRecording) return;
-
-    try {
-      recognitionRef.current.stop();
-    } catch (e) {
-      console.log("Error stopping recognition:", e);
-    }
-
-    try {
-      setTimeout(() => {
-        if (isRecording) {
-          recognitionRef.current.start();
-        }
-      }, 100);
-    } catch (e) {
-      console.log("Error starting recognition:", e);
-      // If start fails, try one more time after a longer delay
-      setTimeout(() => {
-        if (isRecording) {
-          try {
-            recognitionRef.current.start();
-          } catch (error) {
-            console.error("Final attempt to restart recognition failed:", error);
-            setStatus("Recognition failed - please stop and start again");
-          }
-        }
-      }, 1000);
-    }
   };
 
   // Pitch detection setup
@@ -282,107 +323,6 @@ const AudioRecorder = () => {
     analyserRef.current.maxDecibels = -10;
 
     source.connect(analyserRef.current);
-
-    const detectPitch = () => {
-      if (!isRecording) return;
-
-      const bufferLength = analyserRef.current.frequencyBinCount;
-      const dataArray = new Float32Array(bufferLength);
-      analyserRef.current.getFloatFrequencyData(dataArray);
-
-      // Find peaks in the frequency data
-      const peaks = findPeaks(dataArray);
-
-      // Get the most prominent frequency
-      const dominantFreq = getDominantFrequency(peaks, dataArray, audioContextRef.current.sampleRate);
-
-      if (dominantFreq) {
-        // Update pitch buffer with new value
-        setPitchBuffer(prev => {
-          const newBuffer = [...prev.slice(1), dominantFreq];
-
-          // Calculate median from buffer to reduce jitter
-          const medianPitch = calculateMedian(newBuffer);
-
-          // Only update pitch if it's a significant change
-          if (Math.abs(medianPitch - pitch) > 5) {
-            setPitch(medianPitch);
-          }
-
-          return newBuffer;
-        });
-      }
-
-      requestAnimationFrame(detectPitch);
-    };
-
-    detectPitch();
-  };
-
-  // Helper function to find peaks in frequency data
-  const findPeaks = (dataArray) => {
-    const peaks = [];
-    const sampleRate = audioContextRef.current.sampleRate;
-    const binSize = sampleRate / (dataArray.length * 2);
-
-    for (let i = 1; i < dataArray.length - 1; i++) {
-      const freq = i * binSize;
-
-      // Only consider frequencies in human voice range
-      if (freq < MIN_VALID_FREQUENCY || freq > MAX_VALID_FREQUENCY) continue;
-
-      // Check if this point is a peak
-      if (dataArray[i] > NOISE_THRESHOLD &&
-        dataArray[i] > dataArray[i - 1] &&
-        dataArray[i] > dataArray[i + 1]) {
-        peaks.push({
-          index: i,
-          magnitude: dataArray[i],
-          frequency: freq
-        });
-      }
-    }
-
-    return peaks;
-  };
-
-  // Helper function to get the dominant frequency
-  const getDominantFrequency = (peaks, dataArray, sampleRate) => {
-    if (peaks.length === 0) return null;
-
-    // Sort peaks by magnitude
-    peaks.sort((a, b) => b.magnitude - a.magnitude);
-
-    // Get the strongest peak
-    const dominantPeak = peaks[0];
-
-    // Perform quadratic interpolation for more accurate frequency
-    const alpha = dataArray[dominantPeak.index - 1];
-    const beta = dataArray[dominantPeak.index];
-    const gamma = dataArray[dominantPeak.index + 1];
-    const correction = 0.5 * (alpha - gamma) / (alpha - 2 * beta + gamma);
-
-    const interpolatedIndex = dominantPeak.index + correction;
-    const frequency = Math.round(interpolatedIndex * sampleRate / (dataArray.length * 2));
-
-    // Validate frequency
-    if (frequency >= MIN_VALID_FREQUENCY && frequency <= MAX_VALID_FREQUENCY) {
-      return frequency;
-    }
-
-    return null;
-  };
-
-  // Helper function to calculate median
-  const calculateMedian = (values) => {
-    const sorted = [...values].sort((a, b) => a - b);
-    const middle = Math.floor(sorted.length / 2);
-
-    if (sorted.length % 2 === 0) {
-      return Math.round((sorted[middle - 1] + sorted[middle]) / 2);
-    }
-
-    return Math.round(sorted[middle]);
   };
 
   // Add this helper function to get voice range
@@ -432,76 +372,112 @@ const AudioRecorder = () => {
     return () => clearInterval(intervalRef.current);
   }, [isRecording]);
 
-  useEffect(() => {
-    if (timer > 0 && timer % 30 === 0) {
-      sendAudioChunk();
-    }
-  }, [timer]);
+  // useEffect(() => {
+  //   if (timer > 0 && timer % 30 === 0) {
+  //     sendAudioChunk();
+  //   }
+  // }, [timer]);
 
+  // Function to start recording with noise cancellation
   const startRecording = async () => {
     try {
-      setDownloadUrl(null);
-      clearTranscripts();
-      fullRecordingChunks.current = [];
-      audioChunks.current = [];
-
+      // Request microphone access with advanced audio settings
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
-          echoCancellation: true,
-          noiseSuppression: true,
-          autoGainControl: true
+          echoCancellation: true,         // Remove echo
+          noiseSuppression: true,         // Basic noise suppression
+          autoGainControl: true,          // Automatic volume adjustment
+          channelCount: 1,                // Mono audio for better processing
+          sampleRate: 48000,              // High quality sample rate
+          advanced: [{
+            // Advanced noise reduction settings
+            noiseSuppression: {
+              ideal: true
+            },
+            echoCancellation: {
+              ideal: true
+            },
+            autoGainControl: {
+              ideal: true
+            },
+            suppressLocalAudioPlayback: true,  // Prevent feedback
+            // Google Chrome specific optimizations
+            googNoiseSuppression: true,
+            googEchoCancellation: true,
+            googAutoGainControl: true,
+            googHighpassFilter: true,
+            googNoiseSuppression2: true,
+            googEchoCancellation2: true,
+            googAutoGainControl2: true
+          }]
         }
       });
 
+      // Create audio context for processing
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const source = audioContext.createMediaStreamSource(stream);
+      
+      // Create lowpass filter to remove high frequency noise
+      const lowpassFilter = audioContext.createBiquadFilter();
+      lowpassFilter.type = 'lowpass';
+      lowpassFilter.frequency.value = 8000;  // Cut off frequencies above 8kHz
+      
+      // Create highpass filter to remove low frequency noise
+      const highpassFilter = audioContext.createBiquadFilter();
+      highpassFilter.type = 'highpass';
+      highpassFilter.frequency.value = 80;   // Cut off frequencies below 80Hz
+
+      // Create compressor to normalize volume
+      const compressor = audioContext.createDynamicsCompressor();
+      compressor.threshold.value = -50;    // Start compression at -50dB
+      compressor.knee.value = 40;          // Smooth compression curve
+      compressor.ratio.value = 12;         // Compression ratio
+      compressor.attack.value = 0;         // Immediate attack
+      compressor.release.value = 0.25;     // Quick release
+
+      // Connect audio processing nodes - Remove destination connection
+      source
+        .connect(highpassFilter)           // First remove low frequencies
+        .connect(lowpassFilter)            // Then remove high frequencies
+        .connect(compressor);              // Then normalize volume
+        // Removed .connect(audioContext.destination) to prevent playback
+
+      // Create media recorder with optimized settings
       const mediaRecorder = new MediaRecorder(stream, {
-        mimeType: 'audio/webm;codecs=opus'
+        mimeType: 'audio/webm;codecs=opus',  // Use Opus codec for better quality
+        audioBitsPerSecond: 128000           // 128kbps bitrate
       });
 
-      setupPitchDetection(stream);
-
+      // Store recorder reference
+      mediaRecorderRef.current = mediaRecorder;
+      
+      // Handle recorded audio chunks
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
           audioChunks.current.push(event.data);
-          fullRecordingChunks.current.push(event.data);
         }
       };
 
-      mediaRecorder.onstop = () => {
-        sendAudioChunk(true);
-        const fullBlob = new Blob(fullRecordingChunks.current, { type: "audio/webm" });
-        const url = URL.createObjectURL(fullBlob);
-        setDownloadUrl(url);
+      // Start recording
+      mediaRecorder.start(1000);  // Create new chunk every second
+      setIsRecording(true);
+      setStatus('Recording with noise cancellation enabled...');
 
+      // Start speech recognition after short delay
+      setTimeout(() => {
         if (recognitionRef.current) {
           try {
-            recognitionRef.current.stop();
+            recognitionRef.current.start();
           } catch (e) {
-            console.log("Error stopping recognition on recorder stop:", e);
+            console.error('Failed to start recognition:', e);
+            setStatus('Please refresh the page and try again');
           }
         }
-      };
+      }, 500);  // 500ms delay to ensure audio setup is complete
 
-      mediaRecorder.start(1000);
-      mediaRecorderRef.current = mediaRecorder;
-      setIsRecording(true);
-      setStatus("Recording...");
-      setTimer(0);
-
-      if (recognitionRef.current) {
-        try {
-          recognitionRef.current.start();
-        } catch (e) {
-          console.error("Error starting initial recognition:", e);
-          setTimeout(() => {
-            if (isRecording) {
-              recognitionRef.current.start();
-            }
-          }, 100);
-        }
-      }
     } catch (error) {
-      console.error("Error starting recording:", error);
-      setStatus("Error starting recording");
+      console.error('Error accessing microphone:', error);
+      setStatus('Microphone access error');
     }
   };
 
@@ -511,6 +487,9 @@ const AudioRecorder = () => {
     }
     if (recognitionRef.current) {
       recognitionRef.current.stop();
+    }
+    if (watchdogTimerRef.current) {
+      clearInterval(watchdogTimerRef.current);
     }
     setIsRecording(false);
     setStatus("Stopped");
@@ -558,48 +537,7 @@ const AudioRecorder = () => {
           </p>
           <p style={styles.status}>{status}</p>
 
-          {isRecording && (
-            <div style={styles.voiceMeter}>
-              <div style={styles.voiceInfo}>
-                <span style={styles.pitchValue}>{pitch} Hz</span>
-                <span style={{
-                  ...styles.voiceRange,
-                  color: getVoiceColor(pitch)
-                }}>
-                  {getVoiceRange(pitch).label}
-                </span>
-              </div>
-
-              <div style={styles.meterContainer}>
-                <div style={styles.meterScale}>
-                  {Object.entries(VOICE_RANGES).map(([range, { min, max, label }]) => (
-                    <div
-                      key={range}
-                      style={{
-                        ...styles.rangeSection,
-                        backgroundColor: pitch >= min && pitch <= max ? getVoiceColor(pitch) : '#E0E0E0',
-                        width: `${((max - min) / (255 - 85)) * 100}%`
-                      }}
-                    >
-                      <span style={styles.rangeLabel}>{label}</span>
-                      <span style={styles.rangeHz}>{min}-{max}Hz</span>
-                    </div>
-                  ))}
-                </div>
-
-                <div style={styles.meterPointer}>
-                  <div
-                    style={{
-                      ...styles.pointer,
-                      left: `${((pitch - 85) / (255 - 85)) * 100}%`,
-                      backgroundColor: getVoiceColor(pitch)
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
+        
           <div style={styles.transcriptionContainer}>
             <div style={styles.realtimeTranscript}>
               <p style={styles.transcriptTitle}>Real-time Transcript:</p>
@@ -636,9 +574,23 @@ const AudioRecorder = () => {
       <div style={styles.fullTranscriptContainer}>
         <h3 style={styles.transcriptTitle}>Full Transcript</h3>
         <div style={styles.fullTranscriptBox}>
-          {transcripts.map((text, index) => (
-            <p key={index} style={styles.transcriptLine}>{text}</p>
-          ))}
+          {transcripts.map((transcript, index) => {
+            // Handle both string and object formats for backward compatibility
+            const text = typeof transcript === 'string' ? transcript : transcript.text;
+            return (
+              <p key={index} style={styles.transcriptLine}>
+                {text}
+                {typeof transcript === 'object' && (
+                  <span style={styles.transcriptMeta}>
+                    {new Date(transcript.timestamp).toLocaleTimeString()} 
+                    {transcript.confidence > 0 && 
+                      ` (${Math.round(transcript.confidence * 100)}% confidence)`
+                    }
+                  </span>
+                )}
+              </p>
+            );
+          })}
         </div>
       </div>
     </div>
@@ -847,25 +799,11 @@ const styles = {
     borderRadius: '4px',
     boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
   },
-  // ... (keep all existing styles)
-  
-  // Update existing transcriptLine style
-  transcriptLine: {
-    margin: '8px 0',
-    padding: '8px',
-    borderBottom: '1px solid #eee',
-    backgroundColor: '#fff',
-    borderRadius: '4px',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-  },
-  
-  // Update existing container style to remove the margin
-  container: {
-    padding: 20,
-    background: "#fff",
-    borderRadius: 12,
-    textAlign: "center",
-    boxShadow: "0 8px 30px rgba(0,0,0,0.1)",
+  transcriptMeta: {
+    fontSize: '12px',
+    color: '#666',
+    marginLeft: '8px',
+    fontStyle: 'italic',
   },
 };
 
