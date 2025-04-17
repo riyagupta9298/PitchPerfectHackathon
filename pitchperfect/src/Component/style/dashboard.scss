@@ -1,0 +1,315 @@
+.dashboard-container {
+  min-height: 100vh;
+  background-color: #101628;
+  color: #F5F5F5;
+
+  .content-wrapper {
+    max-width: 1066px;
+    margin: 0 auto;
+  }
+
+  .header {
+    background-color: #151C39;
+    text-align: center;
+    height: 80px;
+    line-height: 90px;
+    margin-bottom: 4rem;
+  }
+
+  .pitch-card {
+    background-color: #151C39;
+    border-radius: 8px;
+    padding: 24px;
+    margin-bottom: 32px;
+
+    .card-content {
+      display: flex;
+      gap: 24px;
+
+      .text-content {
+        flex: 1;
+
+        .title {
+          font-family: Roboto;
+          font-weight: 600;
+          font-size: 20px;
+          line-height: 32px;
+          letter-spacing: 0px;
+          margin-bottom: 5px;
+        }
+
+        .subtitle {
+          color: #F5F5F599;
+          margin-bottom: 24px;
+          font-family: Roboto;
+          font-weight: 400;
+          font-size: 14px;
+          line-height: 22px;
+          letter-spacing: 0.2px;
+        }
+
+        .start-button {
+          background-color: #AB9BFA;
+          color: #101628;
+          padding: 12px 24px;
+          font-family: Roboto;
+          font-weight: 400;
+          font-size: 14px;
+          line-height: 22px;
+          width: 200px;
+          margin-top: 5.6rem;
+          height: 50px;
+          letter-spacing: 0px;
+          text-transform: none;
+          float: right;
+          border-radius: 8px;
+
+          &:hover {
+            background-color: #9485e0;
+          }
+        }
+      }
+    }
+  }
+
+  .questions-section {
+    border-radius: 8px;
+    padding: 24px 0px;
+
+
+    .questions-list {
+      &.animate-in {
+        animation: slideDown 0.4s ease-out forwards;
+      }
+
+      padding: 8px 0;
+
+      .question-item {
+        transition: all 0.3s ease-in-out;
+        transform-origin: top;
+        opacity: 0;
+        animation: fadeIn 0.5s ease-out forwards;
+        animation-delay: calc(0.1s * var(--index, 0));
+        background-color: #151C39;
+        border-radius: 8px;
+        padding: 16px 24px;
+        height: 64px;
+        margin-bottom: 11px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+
+        .question-text {
+          color: #F5F5F5;
+          flex: 1;
+          margin-right: 16px;
+          display: -webkit-box;
+          -webkit-line-clamp: 1;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          max-width: 70%;
+          font-family: Roboto;
+          font-weight: 400;
+          font-size: 16px;
+          line-height: 24px;
+          letter-spacing: 0px;
+
+        }
+
+        .attempt-button {
+          background-color: transparent;
+          border: 1px solid #AB9BFA;
+          border-radius: 8px;
+          padding: 8px 16px;
+          font-family: Roboto;
+          color: #AB9BFa;
+          font-weight: 400;
+          font-size: 14px;
+          height: 48px;
+          line-height: 22px;
+          letter-spacing: 0px;
+          text-transform: none;
+          min-width: 157px;
+
+          &:hover {
+            background-color: rgba(171, 155, 250, 0.1);
+          }
+        }
+      }
+
+      @for $i from 0 through 10 {
+        .question-item:nth-child(#{$i + 1}) {
+          --index: #{$i};
+        }
+      }
+    }
+
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 10px;
+
+      &.animate-in {
+        animation: fadeIn 0.4s ease-out forwards;
+      }
+
+      .empty-icon {
+        width: 48px;
+        height: 48px;
+        margin-bottom: 16px;
+      }
+
+      .empty-text {
+        color: #F5F5F5;
+        text-align: center;
+        max-width: 240px;
+        font-family: Roboto;
+        font-weight: 400;
+        font-size: 14px;
+        line-height: 22px;
+        text-align: center;
+      }
+    }
+  }
+
+  .questions-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #F5F5F5;
+    margin-bottom: 24px;
+
+    .title {
+      font-family: Roboto;
+      font-weight: 500;
+      font-size: 24px;
+      line-height: 32px;
+      letter-spacing: 0px;
+      color: #F5F5F5;
+    }
+
+    .counter {
+      font-family: Roboto;
+      font-weight: 400;
+      font-size: 16px;
+      line-height: 32px;
+      letter-spacing: 0px;
+      text-align: right;
+      vertical-align: middle;
+      color: #F5F5F5;
+      cursor: pointer;
+    }
+  }
+}
+
+// Instructions Dialog Styles
+.instructions-dialog {
+  .MuiPaper-root {
+    background-color: #151C39;
+    color: #F5F5F5;
+    border-radius: 8px;
+    padding: 16px;
+  }
+
+  .dialog-title {
+    margin: 0;
+    padding: 16px;
+    font-weight: bold;
+    font-size: 24px;
+
+    .close-button {
+      position: absolute;
+      right: 16px;
+      top: 16px;
+      color: #F5F5F5;
+    }
+  }
+
+  .instruction-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 24px;
+
+    .icon-container {
+      background-color: rgba(171, 155, 250, 0.1);
+      border-radius: 50%;
+      padding: 8px;
+      margin-right: 16px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+
+      .icon {
+        color: #AB9BFA;
+      }
+    }
+
+    .instruction-content {
+      .instruction-title {
+        font-family: Roboto;
+        font-weight: 500;
+        font-size: 16px;
+        line-height: 30px;
+      }
+
+      .instruction-description {
+        color: #F5F5F599;
+        font-family: Roboto;
+        font-weight: 400;
+        font-size: 14px;
+        line-height: 20px;
+      }
+    }
+  }
+
+  .button-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 16px;
+
+    .start-dialog-button {
+      background-color: #AB9BFA;
+      color: #101628;
+      padding: 12px 24px;
+      border-radius: 8px;
+      margin-top: 25px;
+      text-transform: none;
+      min-width: 200px;
+      font-family: Roboto;
+      font-weight: 400;
+      font-size: 14px;
+      line-height: 22px;
+
+      &:hover {
+        background-color: #9485e0;
+      }
+    }
+  }
+}
+
+// Animations
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: scaleY(0);
+  }
+
+  to {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+}

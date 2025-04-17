@@ -3,6 +3,7 @@ import React from 'react';
 //import AudioRecorder from './RecordAudio/AudioRecorder';
 import { CssBaseline, ThemeProvider, createTheme } from '@mui/material';
 import Login from './Component/Login';
+import Dashboard from './Component/Dashboard';
 
 
 
@@ -24,7 +25,8 @@ function App() {
       <CssBaseline />
       <div className="App">
         {/* <AudioRecorder /> */}
-          <Login />
+          {/* <Login /> */}
+          <Dashboard/>
 
 
        
