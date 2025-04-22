@@ -1,0 +1,93 @@
+// Base colors and common variables
+$background-color: #101628;
+$card-background: #151C39;
+$text-color: #F5F5F5;
+$text-color-secondary: #F5F5F599;
+$primary-color: #AB9BFA;
+$primary-hover: #9485e0;
+$border-radius: 8px;
+
+// Common animations
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: scaleY(0);
+  }
+
+  to {
+    opacity: 1;
+    transform: scaleY(1);
+  }
+}
+
+// Common button styles
+@mixin primary-button {
+  background-color: $primary-color;
+  color: $background-color;
+  padding: 12px 24px;
+  border-radius: $border-radius;
+  text-transform: none;
+  font-family: Roboto;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 22px;
+
+  &:hover {
+    background-color: $primary-hover;
+  }
+}
+
+@mixin secondary-button {
+  background-color: transparent;
+  border: 1px solid $primary-color;
+  color: $primary-color;
+  border-radius: $border-radius;
+  padding: 8px 16px;
+  text-transform: none;
+  font-family: Roboto;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 22px;
+
+  &:hover {
+    background-color: rgba(171, 155, 250, 0.1);
+  }
+}
+
+// Common text styles
+@mixin heading-text {
+  font-family: Roboto;
+  font-weight: 500;
+  font-size: 24px;
+  line-height: 32px;
+  letter-spacing: 0px;
+  color: $text-color;
+}
+
+@mixin body-text {
+  font-family: Roboto;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 22px;
+  color: $text-color;
+}
+
+@mixin secondary-text {
+  font-family: Roboto;
+  font-weight: 400;
+  font-size: 14px;
+  line-height: 22px;
+  color: $text-color-secondary;
+}

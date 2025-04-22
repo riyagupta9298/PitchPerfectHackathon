@@ -2,11 +2,16 @@ import React, { useState } from 'react';
 import { Typography, IconButton, Button, CircularProgress } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import MicIcon from '@mui/icons-material/Mic';
+import ConfirmationPopup from './ConfirmationPopup';
+import DetailedReportPopup from './DetailedReportPopup';
 import './style/dashboard.scss';
 
 const QuestionAnalysis = ({ onBack }) => {
-  // State to track if recording has started
-  const [isRecording, setIsRecording] = useState(true);
+  // States for recording and UI control
+  const [isRecording, setIsRecording] = useState(false);
+  const [isRecordingDone, setIsRecordingDone] = useState(false);
+  const [showSubmitConfirmation, setShowSubmitConfirmation] = useState(false);
+  const [showDetailedReport, setShowDetailedReport] = useState(false);
 
   // Static data for the demo
   const keywords = [
@@ -17,11 +22,37 @@ const QuestionAnalysis = ({ onBack }) => {
   // Handle start answer button click
   const handleStartAnswer = () => {
     setIsRecording(true);
+    setIsRecordingDone(false);
   };
 
   // Handle done button click
   const handleDone = () => {
     setIsRecording(false);
+    setIsRecordingDone(true);
+  };
+
+  // Handle submit button click
+  const handleSubmit = () => {
+    // Show the confirmation popup
+    setShowSubmitConfirmation(true);
+    console.log('Answer submitted');
+  };
+
+  // Handle see report button click
+  const handleSeeReport = () => {
+    // Show the detailed report popup
+    setShowSubmitConfirmation(false);
+    setShowDetailedReport(true);
+    console.log('Showing detailed report');
+  };
+
+  // Handle next question button click
+  const handleNextQuestion = () => {
+    // Here you would navigate to the next question
+    setShowSubmitConfirmation(false);
+    setShowDetailedReport(false);
+    setIsRecordingDone(false);
+    console.log('Navigating to next question');
   };
 
   // Mock question data
@@ -33,6 +64,22 @@ const QuestionAnalysis = ({ onBack }) => {
 
   return (
     <div className="question-analysis-container">
+      {/* Simple Confirmation Popup */}
+      {showSubmitConfirmation && (
+        <ConfirmationPopup
+          onSeeReport={handleSeeReport}
+          onNextQuestion={handleNextQuestion}
+        />
+      )}
+
+      {/* Detailed Report Popup */}
+      {showDetailedReport && (
+        <DetailedReportPopup
+          questionData={questionData}
+          onNextQuestion={handleNextQuestion}
+        />
+      )}
+
       <div className="header">
         <IconButton className="back-button" onClick={onBack}>
           <ArrowBackIcon />
@@ -78,6 +125,32 @@ const QuestionAnalysis = ({ onBack }) => {
                 </Button>
               </div>
             </div>
+          ) : isRecordingDone ? (
+            <div className="recording-controls">
+              <div className="waveform-container">
+                <div className="audio-waveform">
+                  {/* Static waveform visualization after recording */}
+                  {Array.from({ length: 100 }, (_, i) => (
+                    <div
+                      key={i}
+                      className="waveform-bar"
+                      style={{ height: `${5 + Math.sin(i * 0.2) * 15}px` }}
+                    />
+                  ))}
+                </div>
+                <Typography className="recording-time">0:56</Typography>
+              </div>
+
+              <div className="control-buttons">
+                <Button
+                  variant="contained"
+                  className="control-button done-button"
+                  onClick={handleSubmit}
+                >
+                  Submit
+                </Button>
+              </div>
+            </div>
           ) : (
             <div className="start-answer-container">
               <Button
@@ -116,7 +189,6 @@ const QuestionAnalysis = ({ onBack }) => {
                   size={134}
                   thickness={2}
                   className="score-progress left-rotation Green"
-
                 />
                 <Typography className="score-value">
                   45
@@ -152,7 +224,7 @@ const QuestionAnalysis = ({ onBack }) => {
             Keywords help you better your score and your overall pitch, so you can sell more, more efficiently.
           </Typography>
 
-          {isRecording ? (
+          {isRecording || isRecordingDone ? (
             <div className="keywords-grid">
               {keywords.map((keyword, index) => (
                 <div key={index} className="keyword-chip">

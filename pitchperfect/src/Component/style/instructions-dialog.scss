@@ -1,0 +1,74 @@
+@import './base.scss';
+
+// Instructions Dialog Styles
+.instructions-dialog {
+  .MuiPaper-root {
+    background-color: $card-background;
+    color: $text-color;
+    border-radius: $border-radius;
+    padding: 16px;
+  }
+
+  .dialog-title {
+    margin: 0;
+    padding:0px 16px 16px;
+    font-weight: bold;
+    font-size: 24px;
+
+    .close-button {
+      position: absolute;
+      right: 16px;
+      top: 16px;
+      color: $text-color;
+    }
+  }
+
+  .instruction-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 24px;
+
+    .icon-container {
+      background-color: rgba(171, 155, 250, 0.1);
+      border-radius: 50%;
+      padding: 8px;
+      margin-right: 16px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+
+      .icon {
+        color: $primary-color;
+      }
+    }
+
+    .instruction-content {
+      .instruction-title {
+        font-family: Roboto;
+        font-weight: 500;
+        font-size: 16px;
+        line-height: 30px;
+      }
+
+      .instruction-description {
+        color: $text-color-secondary;
+        font-family: Roboto;
+        font-weight: 400;
+        font-size: 14px;
+        line-height: 20px;
+      }
+    }
+  }
+
+  .button-container {
+    display: flex;
+    justify-content: center;
+    margin-top: 16px;
+
+    .start-dialog-button {
+      @include primary-button;
+      margin-top: 25px;
+      min-width: 200px;
+    }
+  }
+}

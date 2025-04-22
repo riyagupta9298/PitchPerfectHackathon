@@ -1,0 +1,410 @@
+@import './base.scss';
+
+// Confirmation Popup Styles
+.confirmation-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(16, 22, 40, 0.9);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+// Original Confirmation Popup
+.confirmation-popup-original {
+  background-color: $card-background;
+  border-radius: $border-radius;
+  padding: 75px 40px;
+  width: 90%;
+  min-height: 400px;
+  max-width: 600px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+
+  .confirmation-icon {
+    color: $primary-color;
+    margin-bottom: 16px;
+    svg {
+      font-size: 48px;
+    }
+  }
+
+  .confirmation-title {
+    color: $text-color;
+    font-family: Roboto;
+    font-weight: 400;
+    font-size: 24px;
+    line-height: 32px;
+    letter-spacing: 0px;
+    text-align: center;
+    margin-bottom: 32px;
+  }
+
+  .confirmation-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+    max-width: 240px;
+
+    .report-button {
+      @include secondary-button;
+      font-weight: 400;
+    }
+
+    .next-button {
+      @include primary-button;
+      font-size: 14px;
+      font-weight: 400;
+    }
+  }
+}
+
+// New Detailed Confirmation Popup
+.confirmation-popup {
+  background-color: #31385E;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 800px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  animation: fadeIn 0.3s ease-out forwards;
+
+  .confirmation-header {
+    background-color: #1A203E;
+    padding: 16px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+
+    .confirmation-status {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      .check-icon {
+        color: $primary-color;
+        font-size: 28px;
+      }
+
+      .confirmation-title {
+        color: $text-color;
+        font-family: Roboto;
+        font-weight: 400;
+        font-size: 24px;
+        line-height: 32px;
+        letter-spacing: 0%;
+
+      }
+    }
+
+    .next-button {
+      @include primary-button;
+
+    }
+  }
+
+  .question-details {
+    padding: 16px 24px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+
+    .question-number {
+      @include secondary-text;
+      margin-bottom: 8px;
+    }
+
+    .question-full-text {
+      @include body-text;
+    }
+  }
+
+  .responses-container {
+    padding: 0 24px 16px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+
+    @media (max-width: 768px) {
+      grid-template-columns: 1fr;
+    }
+
+    /* CSS-only implementation for responses */
+    &.css-only {
+      position: relative;
+      min-height: 200px;
+
+      &::before, &::after {
+        content: '';
+        position: absolute;
+        height: 200px;
+        top: 0;
+        background-color: #1A203E;
+        border-radius: $border-radius;
+      }
+
+      /* Left response box */
+      &::before {
+        left: 24px;
+        right: calc(50% + 12px);
+
+        /* Your response label */
+        &::after {
+          content: 'Your response';
+          position: absolute;
+          top: 16px;
+          left: 20px;
+          font-family: Roboto;
+          font-weight: 500;
+          font-size: 16px;
+          line-height: 24px;
+          color: $text-color;
+        }
+
+        /* Audio player */
+        &::before {
+          content: '';
+          position: absolute;
+          top: 60px;
+          left: 20px;
+          right: 20px;
+          height: 32px;
+          display: flex;
+          align-items: center;
+
+          /* Play button */
+          box-shadow:
+            0 0 0 32px $primary-color,
+            16px 0 0 32px transparent,
+            calc(100% - 36px) 0 0 0 transparent;
+          border-radius: 50%;
+
+          /* Play icon */
+          &::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 0;
+            border-style: solid;
+            border-width: 6px 0 6px 10px;
+            border-color: transparent transparent transparent $background-color;
+            left: 11px;
+            top: 10px;
+          }
+        }
+
+        /* Audio track */
+        &::after {
+          content: '2:45';
+          position: absolute;
+          top: 60px;
+          right: 20px;
+          font-family: Roboto;
+          font-weight: 400;
+          font-size: 12px;
+          line-height: 18px;
+          color: $text-color-secondary;
+        }
+
+        /* Track progress */
+        &::before {
+          &::before {
+            content: '';
+            position: absolute;
+            top: 75px;
+            left: 60px;
+            right: 60px;
+            height: 4px;
+            background-color: rgba(26, 32, 62, 0.5);
+            border-radius: 2px;
+
+            /* Progress bar */
+            &::after {
+              content: '';
+              position: absolute;
+              left: 0;
+              top: 0;
+              width: 70%;
+              height: 100%;
+              background-color: $primary-color;
+              border-radius: 2px;
+            }
+          }
+        }
+      }
+
+      /* Right response box */
+      &::after {
+        right: 24px;
+        left: calc(50% + 12px);
+
+        /* Best response label */
+        &::after {
+          content: 'Best response';
+          position: absolute;
+          top: 16px;
+          left: 20px;
+          font-family: Roboto;
+          font-weight: 500;
+          font-size: 16px;
+          line-height: 24px;
+          color: $text-color;
+        }
+
+        /* Audio player */
+        &::before {
+          content: '';
+          position: absolute;
+          top: 60px;
+          left: 20px;
+          right: 20px;
+          height: 32px;
+          display: flex;
+          align-items: center;
+
+          /* Play button */
+          box-shadow:
+            0 0 0 32px $primary-color,
+            16px 0 0 32px transparent,
+            calc(100% - 36px) 0 0 0 transparent;
+          border-radius: 50%;
+
+          /* Play icon */
+          &::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 0;
+            border-style: solid;
+            border-width: 6px 0 6px 10px;
+            border-color: transparent transparent transparent $background-color;
+            left: 11px;
+            top: 10px;
+          }
+        }
+
+        /* Audio track */
+        &::after {
+          content: '2:45';
+          position: absolute;
+          top: 60px;
+          right: 20px;
+          font-family: Roboto;
+          font-weight: 400;
+          font-size: 12px;
+          line-height: 18px;
+          color: $text-color-secondary;
+        }
+
+        /* Track progress */
+        &::before {
+          &::before {
+            content: '';
+            position: absolute;
+            top: 75px;
+            left: 60px;
+            right: 60px;
+            height: 4px;
+            background-color: rgba(26, 32, 62, 0.5);
+            border-radius: 2px;
+
+            /* Progress bar */
+            &::after {
+              content: '';
+              position: absolute;
+              left: 0;
+              top: 0;
+              width: 70%;
+              height: 100%;
+              background-color: $primary-color;
+              border-radius: 2px;
+            }
+          }
+        }
+
+        /* Best response credit */
+        &::before {
+          content: 'Best response by Keysang Yonthan (PW37624)';
+          position: absolute;
+          bottom: 16px;
+          left: 20px;
+          font-family: Roboto;
+          font-weight: 400;
+          font-size: 12px;
+          line-height: 18px;
+          color: $text-color-secondary;
+        }
+      }
+
+      @media (max-width: 768px) {
+        &::before {
+          left: 24px;
+          right: 24px;
+          top: 0;
+          height: 100px;
+        }
+
+        &::after {
+          left: 24px;
+          right: 24px;
+          top: 120px;
+          height: 100px;
+        }
+      }
+    }
+
+    .response-box {
+      border-radius: $border-radius;
+      background-color: #1A203E;
+      padding: 16px 20px;
+      display: flex;
+      flex-direction: column;
+
+      .response-title {
+        font-family: Roboto;
+        font-weight: 500;
+        font-size: 14px;
+        line-height: 24px;
+        color: $text-color;
+        margin-right:30px;
+        margin-bottom: 0;
+      }
+
+      .best-response-credit {
+        font-family: Roboto;
+        font-weight: 400;
+        font-size: 12px;
+        line-height: 18px;
+        color: #F5F5F561;
+        margin-top: 8px;
+      }
+
+      .response-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+        width: 100%;
+
+       
+
+        .simple-audio-player {
+          flex: 1;
+        }
+      }
+    }
+  }
+
+}

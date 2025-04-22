@@ -203,123 +203,14 @@
     }
   }
 }
-
-// Instructions Dialog Styles
-.instructions-dialog {
-  .MuiPaper-root {
-    background-color: #151C39;
-    color: #F5F5F5;
-    border-radius: 8px;
-    padding: 16px;
-  }
-
-  .dialog-title {
-    margin: 0;
-    padding: 16px;
-    font-weight: bold;
-    font-size: 24px;
-
-    .close-button {
-      position: absolute;
-      right: 16px;
-      top: 16px;
-      color: #F5F5F5;
-    }
-  }
-
-  .instruction-item {
-    display: flex;
-    align-items: center;
-    margin-bottom: 24px;
-
-    .icon-container {
-      background-color: rgba(171, 155, 250, 0.1);
-      border-radius: 50%;
-      padding: 8px;
-      margin-right: 16px;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-
-      .icon {
-        color: #AB9BFA;
-      }
-    }
-
-    .instruction-content {
-      .instruction-title {
-        font-family: Roboto;
-        font-weight: 500;
-        font-size: 16px;
-        line-height: 30px;
-      }
-
-      .instruction-description {
-        color: #F5F5F599;
-        font-family: Roboto;
-        font-weight: 400;
-        font-size: 14px;
-        line-height: 20px;
-      }
-    }
-  }
-
-  .button-container {
-    display: flex;
-    justify-content: center;
-    margin-top: 16px;
-
-    .start-dialog-button {
-      background-color: #AB9BFA;
-      color: #101628;
-      padding: 12px 24px;
-      border-radius: 8px;
-      margin-top: 25px;
-      text-transform: none;
-      min-width: 200px;
-      font-family: Roboto;
-      font-weight: 400;
-      font-size: 14px;
-      line-height: 22px;
-
-      &:hover {
-        background-color: #9485e0;
-      }
-    }
-  }
-}
-
-// Animations
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: scaleY(0);
-  }
-
-  to {
-    opacity: 1;
-    transform: scaleY(1);
-  }
-}
-
 // Question Analysis Component Styles
 .question-analysis-container {
   min-height: 100vh;
   background-color: #101628;
   color: #F5F5F5;
   padding: 0;
+  position: relative;
+
 
   .header {
     background-color: #151C39;
@@ -370,6 +261,7 @@
       background-color: #151C39;
       border-radius: 8px;
       padding: 24px;
+      height: 360px;
       display: flex;
       flex-direction: column;
       animation: fadeIn 0.4s ease-out forwards;
@@ -409,7 +301,7 @@
         font-weight: 400;
         font-size: 14px;
         line-height: 22px;
-        margin-top:2.5rem;
+        margin-top:2rem;
 
         &:hover {
           background-color: #9485e0;
@@ -418,16 +310,16 @@
 
       .recording-controls {
         width: 100%;
-        margin-top: auto;
+        margin-top: 2rem;
+        display: flex;
+        gap: 16px;
+        align-items: center;
 
         .waveform-container {
-          display: flex;
+          display: grid;
+          grid-template-columns: 1fr auto;
           align-items: center;
-          margin-bottom: 16px;
-          background-color: #151C39;
-          border-radius: 8px;
-          padding: 12px 16px;
-          width: 100%;
+             width: 100%;
 
           .audio-waveform {
             display: flex;
@@ -452,7 +344,7 @@
 
             .waveform-bar {
               width: 2px;
-              background-color: #6B7CFF;
+              background-color: #AB9BFA;
               border-radius: 1px;
               animation: waveform-animation 3.5s infinite;
               transform-origin: bottom;
@@ -497,16 +389,14 @@
             font-family: Roboto;
             font-weight: 400;
             font-size: 14px;
-            color: #F5F5F5;
+            color: #AB9BFA;
             min-width: 40px;
             text-align: right;
           }
         }
 
         .control-buttons {
-          display: flex;
-          gap: 16px;
-          justify-content: flex-end;
+
 
           .control-button {
             border-radius: 8px;
@@ -515,16 +405,18 @@
             font-weight: 400;
             font-size: 14px;
             padding: 8px 24px;
+            min-width: 100px;
           }
 
           .done-button {
-            background-color: #AB9BFA;
+            background-color: #C4B5FF;
             color: #101628;
 
             &:hover {
-              background-color: #9485e0;
+              background-color: #B3A3EE;
             }
           }
+
         }
       }
     }
@@ -534,6 +426,7 @@
       background-color: #151C39;
       border-radius: 12px;
       padding: 20px;
+      height: 360px;
       width: 100%;
       color: #ffffff;
     }
@@ -565,13 +458,22 @@
     }
 
     .metrics-container {
-      display: flex;
-      justify-content: space-between;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
       gap: 16px;
+      padding: 0 24px 24px;
+
+      @media (max-width: 576px) {
+        grid-template-columns: 1fr;
+      }
+
+      &.confirmation-metrics {
+        margin-bottom: 0;
+      }
     }
 
     .metric-item {
-      background-color: #1f2a48;
+      background-color: #1A203E;
       padding: 16px;
       border-radius: 10px;
       flex: 1;
@@ -582,8 +484,8 @@
       position: relative;
       width: 134px;
       height: 134px;
-      margin: 0 auto;
-      background-color:  #1A203E;
+      margin: 22px auto;
+      background-color: #272e4f;
       border-radius: 50%;
       display: flex;
       justify-content: center;
@@ -629,10 +531,11 @@
     }
 
     .confidence-bars-container {
-      display: flex;
-      flex-direction: column;
+      display: grid;
+      grid-template-rows: repeat(5, 1fr);
       gap: 8px;
       margin-top: 10px;
+      padding: 16px 0;
     }
 
     .confidence-bar {
@@ -652,9 +555,13 @@
     }
 
     .metric-label {
-      font-size: 0.8rem;
-      color: #aeb9d6;
+      font-family: Roboto;
+      font-weight: 400;
+      font-size: 14px;
+      line-height: 22px;
+      color: #F5F5F5;
       margin-top: 10px;
+      text-align: center;
     }
 
     // Keywords Section
@@ -665,6 +572,7 @@
       padding: 24px;
       animation: fadeIn 0.4s ease-out forwards;
       animation-delay: 0.2s;
+      margin-bottom: 1rem;
 
       .keywords-title {
         font-family: Roboto;

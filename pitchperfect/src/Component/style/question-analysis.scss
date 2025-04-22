@@ -1,0 +1,334 @@
+@import './base.scss';
+
+// Question Analysis Component Styles
+.question-analysis-container {
+  min-height: 100vh;
+  background-color: $background-color;
+  color: $text-color;
+  padding: 0;
+  position: relative;
+
+  .header {
+    background-color: $card-background;
+    text-align: center;
+    height: 80px;
+    line-height: 90px;
+    margin-bottom: 2rem;
+    position: relative;
+
+    .back-button {
+      position: absolute;
+      left: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: $text-color;
+
+      &:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+      }
+    }
+  }
+
+  .question-analysis-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto;
+    grid-template-areas:
+      "question analysis"
+      "keywords keywords";
+    gap: 24px;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 10px 24px;
+
+    // Mobile responsive layout
+    @media (max-width: 768px) {
+      grid-template-columns: 1fr;
+      grid-template-areas:
+        "question"
+        "analysis"
+        "keywords";
+      padding: 16px;
+    }
+
+    // Question Section
+    .question-section {
+      grid-area: question;
+      background-color: $card-background;
+      border-radius: $border-radius;
+      padding: 24px;
+      height: 360px;
+      display: flex;
+      flex-direction: column;
+      animation: fadeIn 0.4s ease-out forwards;
+
+      .question-counter {
+        font-family: Roboto;
+        font-weight: 400;
+        font-size: 14px;
+        line-height: 22px;
+        color: $text-color-secondary;
+        margin-bottom: 16px;
+      }
+
+      .question-text {
+        font-family: Roboto;
+        font-weight: 400;
+        font-size: 14px;
+        line-height: 22px;
+        letter-spacing: 0.3px;
+        flex-grow: 1;
+        color: $text-color;
+      }
+
+      .start-answer-container {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: auto;
+      }
+
+      .start-answer-button {
+        background-color: $primary-color;
+        color: $background-color;
+        padding: 12px 24px;
+        border-radius: $border-radius;
+        text-transform: none;
+        font-family: Roboto;
+        font-weight: 400;
+        font-size: 14px;
+        line-height: 22px;
+        margin-top: 2rem;
+
+        &:hover {
+          background-color: $primary-hover;
+        }
+      }
+
+      .recording-controls {
+        width: 100%;
+        margin-top: 2rem;
+        display: flex;
+        gap: 16px;
+        align-items: center;
+
+        .waveform-container {
+          display: grid;
+          grid-template-columns: 1fr auto;
+          align-items: center;
+          width: 100%;
+
+          .audio-waveform {
+            display: flex;
+            align-items: center;
+            height: 40px;
+            flex-grow: 1;
+            gap: 2px;
+            margin-right: 10px;
+            overflow: hidden;
+            position: relative;
+
+            &::before {
+              content: '';
+              position: absolute;
+              top: 0;
+              left: 0;
+              bottom: 0;
+              width: 30px;
+              background: linear-gradient(to right, $card-background, transparent);
+              z-index: 2;
+            }
+
+            .waveform-bar {
+              width: 2px;
+              background-color: $primary-color;
+              border-radius: 1px;
+              animation: waveform-animation 3.5s infinite;
+              transform-origin: bottom;
+              position: relative;
+
+              @for $i from 1 through 100 {
+                &:nth-child(#{$i}) {
+                  animation-delay: #{(100 - $i) * 0.02}s;
+                }
+              }
+            }
+
+            @keyframes waveform-animation {
+              0% {
+                height: 5px;
+                opacity: 0.7;
+              }
+              20% {
+                height: 15px;
+                opacity: 0.8;
+              }
+              40% {
+                height: 25px;
+                opacity: 1;
+              }
+              60% {
+                height: 30px;
+                opacity: 1;
+              }
+              80% {
+                height: 20px;
+                opacity: 0.8;
+              }
+              100% {
+                height: 5px;
+                opacity: 0.7;
+              }
+            }
+          }
+
+          .recording-time {
+            font-family: Roboto;
+            font-weight: 400;
+            font-size: 14px;
+            color: $primary-color;
+            min-width: 40px;
+            text-align: right;
+          }
+        }
+
+        .control-buttons {
+          .control-button {
+            border-radius: $border-radius;
+            text-transform: none;
+            font-family: Roboto;
+            font-weight: 400;
+            font-size: 14px;
+            padding: 8px 24px;
+            min-width: 100px;
+          }
+
+          .done-button {
+            background-color: #C4B5FF;
+            color: $background-color;
+
+            &:hover {
+              background-color: #B3A3EE;
+            }
+          }
+        }
+      }
+    }
+
+    // Analysis Section
+    .analysis-section {
+      background-color: $card-background;
+      border-radius: 12px;
+      padding: 20px;
+      height: 360px;
+      width: 100%;
+      color: $text-color;
+    }
+
+    .analysis-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+
+      .analysis-title {
+        font-size: 1.2rem;
+        font-weight: 600;
+      }
+
+      .analysis-status {
+        background-color: #1f2a48;
+        padding: 4px 12px;
+        font-size: 0.75rem;
+        border-radius: 6px;
+        color: #b8c1d1;
+      }
+    }
+
+    .analysis-subtitle {
+      font-size: 0.85rem;
+      color: #8996ae;
+      margin-top: 8px;
+      margin-bottom: 20px;
+    }
+
+
+
+    // Keywords Section
+    .keywords-section {
+      grid-area: keywords;
+      background-color: $card-background;
+      border-radius: $border-radius;
+      padding: 24px;
+      animation: fadeIn 0.4s ease-out forwards;
+      animation-delay: 0.2s;
+      margin-bottom: 1rem;
+
+      .keywords-title {
+        font-family: Roboto;
+        font-weight: 400;
+        font-size: 24px;
+        line-height: 32px;
+        letter-spacing: 0px;
+        color: $text-color;
+        text-align: center;
+      }
+
+      .keywords-subtitle {
+        font-family: Roboto;
+        font-weight: 400;
+        font-size: 14px;
+        line-height: 35px;
+        letter-spacing: 0.2px;
+        color: rgba(245, 245, 245, 0.6);
+        text-align: center;
+        margin-bottom: 20px;
+      }
+
+      .keywords-grid {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 16px;
+
+        @media (max-width: 1200px) {
+          grid-template-columns: repeat(3, 1fr);
+        }
+
+        @media (max-width: 768px) {
+          grid-template-columns: repeat(2, 1fr);
+        }
+
+        @media (max-width: 480px) {
+          grid-template-columns: 1fr;
+        }
+
+        .keyword-chip {
+          background-color: #1A203E;
+          color: $text-color;
+          border-radius: $border-radius;
+          padding: 12px 16px;
+          font-family: Roboto;
+          font-weight: 400;
+          font-size: 14px;
+          line-height: 22px;
+          text-align: center;
+          transition: all 0.2s ease-in-out;
+
+          &:hover {
+            background-color: rgba(171, 155, 250, 0.2);
+            transform: translateY(-2px);
+          }
+        }
+      }
+
+      .keywords-empty,
+      .keywords-pending {
+        font-family: Roboto;
+        font-weight: 400;
+        font-size: 14px;
+        line-height: 22px;
+        color: $text-color-secondary;
+        text-align: center;
+        padding: 40px 0 0;
+      }
+    }
+  }
+}
