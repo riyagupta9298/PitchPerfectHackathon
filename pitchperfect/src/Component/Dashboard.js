@@ -8,7 +8,7 @@ import VolumeOffIcon from '@mui/icons-material/VolumeOff';
 import RecordVoiceOverIcon from '@mui/icons-material/RecordVoiceOver';
 import './style/dashboard.scss';
 
-const Dashboard = () => {
+const Dashboard = ({ onStartQuestion }) => {
   const [showQuestions, setShowQuestions] = React.useState(false);
   const [openInstructionsDialog, setOpenInstructionsDialog] = React.useState(false);
   const questions = [
@@ -95,6 +95,7 @@ const Dashboard = () => {
                 <Button
                   variant="outlined"
                   className="attempt-button"
+                  onClick={onStartQuestion}
                 >
                   Attempt this
                 </Button>
@@ -208,7 +209,10 @@ const Dashboard = () => {
         <Box className="button-container">
           <Button
             variant="contained"
-            onClick={() => setOpenInstructionsDialog(false)}
+            onClick={() => {
+              setOpenInstructionsDialog(false);
+              onStartQuestion();
+            }}
             className="start-dialog-button"
           >
             Let's start
