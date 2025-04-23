@@ -1,11 +1,14 @@
 import React from 'react';
-import { Box, Typography, Button } from '@mui/material';
+import { Box, Typography, Button, CircularProgress } from '@mui/material';
 import InstructionsDialog from './InstructionsDialog';
 import './style/index.scss';
 
 const Dashboard = ({ onStartQuestion }) => {
   const [showQuestions, setShowQuestions] = React.useState(false);
   const [openInstructionsDialog, setOpenInstructionsDialog] = React.useState(false);
+
+  // Module score data (can be replaced with actual data from props or API)
+  const moduleScore = 85;
   const questions = [
     {
       text: "Mr. Rajesh Sharma is a 35-year-old married professional residing in Mumbai. He and his spouse are both employed full-t...",
@@ -31,13 +34,19 @@ const Dashboard = ({ onStartQuestion }) => {
 
 
 
+
+
   return (
     <div className="dashboard-container">
-      <Box className="header"> <img
-        src="../img/logo.svg"
-        alt="Pitch perfect"
+      <Box className="header">
+        <img
+          src="../img/logo.svg"
+          alt="Pitch perfect"
+        />
+      </Box>
 
-      /></Box>
+
+
       <Box className="content-wrapper">
         <Box className="pitch-card">
           <Box className="card-content">
@@ -55,13 +64,47 @@ const Dashboard = ({ onStartQuestion }) => {
               <Typography variant="body2" className="subtitle">
                 Answer 5 targeted questions to gain actionable insights and connect with customers more effectively
               </Typography>
-              <Button
-                variant="contained"
-                className="start-button"
-                onClick={() => setOpenInstructionsDialog(true)}
-              >
-               Start module
-              </Button>
+
+              {/* Module Score Footer */}
+              <Box className="module-score-footer">
+                <Box className="scores-container">
+                  <Box className="score-item">
+                    <Typography className="score-label">Module score:</Typography>
+                    <Box className="score-circle">
+                      <CircularProgress
+                        variant="determinate"
+                        value={85}
+                        size={45}
+                        thickness={4}
+                        className="score-progress"
+                      />
+                      <Typography className="score-value">
+                        {moduleScore}
+                      </Typography>
+                    </Box>
+                  </Box>
+
+                  <Box className="score-item">
+                    <Typography className="score-label">Average confidence score:</Typography>
+                    <Box className="confidence-bars-container">
+                      {[...Array(4)].map((_, i) => (
+                        <div
+                          key={i}
+                          className="confidence-bar active"
+                        />
+                      ))}
+                    </Box>
+                  </Box>
+                </Box>
+
+                <Button
+                  variant="contained"
+                  className="start-button"
+                  onClick={() => setOpenInstructionsDialog(true)}
+                >
+                  Start module
+                </Button>
+              </Box>
             </Box>
           </Box>
         </Box>
