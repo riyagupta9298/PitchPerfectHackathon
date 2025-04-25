@@ -12,7 +12,7 @@ const DetailedReportPopup = ({ questionData, onNextQuestion, showCloseBtn }) => 
   const [userResponseAudio, setUserResponseAudio] = useState(null);
   const [caseStudyData, setCaseStudyData] = useState(null);
   const [showQuestionDetails, setShowQuestionDetails] = useState(true);
-  
+
   useEffect(() => {
     const fetchCaseStudyData = async () => {
       try {
@@ -35,7 +35,7 @@ const DetailedReportPopup = ({ questionData, onNextQuestion, showCloseBtn }) => 
           const currentCaseStudy = response.data.Data.find(
             item => item.CaseStudy.CaseStudyId === questionData.number
           );
-          
+
           if (currentCaseStudy) {
             setCaseStudyData(currentCaseStudy);
             if (currentCaseStudy.CaseStudy.ExcellentPitch) {
@@ -133,14 +133,15 @@ const DetailedReportPopup = ({ questionData, onNextQuestion, showCloseBtn }) => 
         </div>
         {showQuestionDetails && (
           <div className="question-details">
-            <Typography className="question-full-text">
-                {questionData.text.split('\n').map((line, index) => (
-                    <React.Fragment key={index}>
-                        {line}
-                        {index < questionData.text.split('\n').length - 1 && <br />}
-                    </React.Fragment>
-                ))}
-            </Typography>
+            <div className="question-text">
+              {questionData.text.split('\n').map((line, index) => (
+                line.trim() ? (
+                  <Typography key={index} component="p" className="question-paragraph">
+                    {line}
+                  </Typography>
+                ) : null
+              ))}
+            </div>
           </div>
         )}
 
@@ -148,7 +149,7 @@ const DetailedReportPopup = ({ questionData, onNextQuestion, showCloseBtn }) => 
           <div className="response-box">
             <div className="response-header">
               <Typography className="response-title">Your response</Typography>
-              <AudioPlayer 
+              <AudioPlayer
                 showPlaybackRate={true}
                 audioSrc={userResponseAudio}
               />
@@ -158,63 +159,75 @@ const DetailedReportPopup = ({ questionData, onNextQuestion, showCloseBtn }) => 
           <div className="response-box">
             <div className="response-header">
               <Typography className="response-title">Best response</Typography>
-              <AudioPlayer 
+              <AudioPlayer
                 showPlaybackRate={true}
                 audioSrc={bestResponseAudio}
               />
             </div>
           </div>
         </div>
-        {caseStudyData?.UserResponse?.AnalysisReport?.Data?.Data && 
-          <div className="question-details">
+        {caseStudyData?.UserResponse?.AnalysisReport?.Data?.Data &&
+          <div className="analysis-report-section">
+            <div className="analysis-header-section">
+              <div className="header-content">
+                <Typography className="analysis-title">Performance Analysis</Typography>
+                <div className="scores-container">
+                  <div className="score-item">
+                    <div className="score-circle">
+                      <Typography className="score-value">{caseStudyData.UserResponse.AnalysisReport.Data.Data.OverallScore}</Typography>
+                    </div>
+                    <Typography className="score-label">Overall</Typography>
+                  </div>
+                  <div className="score-item">
+                    <div className="score-circle">
+                      <Typography className="score-value">{caseStudyData.UserResponse.AnalysisReport.Data.Data.ConfidenceScore}</Typography>
+                    </div>
+                    <Typography className="score-label">Confidence</Typography>
+                  </div>
+                </div>
+              </div>
+            </div>
 
-            <Typography className="question-full-text">
-                <p>
-                  Overall Score is {caseStudyData.UserResponse.AnalysisReport.Data.Data.OverallScore}
-                </p>
-                <p>
-                  Confidence Score is {caseStudyData.UserResponse.AnalysisReport.Data.Data.ConfidenceScore}
-                </p>
+            <div className="analysis-content">
+              <div className="analysis-section">
+                <Typography className="section-title">Case Study Handling</Typography>
+                <ul className="analysis-list">
+                  <li>{caseStudyData.UserResponse.AnalysisReport.Data.Data.CaseStudyHandling}</li>
+                </ul>
+              </div>
 
-                <p>
-                  <Typography>Case Study Handling</Typography>
-                  <ul>
-                    <li>{caseStudyData.UserResponse.AnalysisReport.Data.Data.CaseStudyHandling}</li>
-                  </ul>
-                </p>
+              <div className="analysis-section">
+                <Typography className="section-title">Keyword Usage Analysis</Typography>
+                <ul className="analysis-list">
+                  <li>{caseStudyData.UserResponse.AnalysisReport.Data.Data.KeywordUsageAnalysis}</li>
+                </ul>
+              </div>
 
-                <p>
-                  <Typography>Keyword Usage Analysis</Typography>
-                  <ul>
-                    <li>{caseStudyData.UserResponse.AnalysisReport.Data.Data.KeywordUsageAnalysis}</li>
-                  </ul>
-                </p>
+              <div className="analysis-section">
+                <Typography className="section-title">Improvement Suggestions</Typography>
+                <ul className="analysis-list">
+                  {caseStudyData.UserResponse.AnalysisReport.Data.Data.ImprovementSuggestions.map((suggestion, index) => (
+                    <li key={index}>{suggestion}</li>
+                  ))}
+                </ul>
+              </div>
 
-                <p>
-                  <Typography>Improvement Suggestions</Typography>
-                  <ul>
-                    {caseStudyData.UserResponse.AnalysisReport.Data.Data.ImprovementSuggestions.map((suggestion, index) => (
-                      <li key={index}>{suggestion}</li>
-                    ))}
-                  </ul>
-                </p>
+              <div className="analysis-section">
+                <Typography className="section-title">Concern Areas</Typography>
+                <ul className="analysis-list">
+                  {caseStudyData.UserResponse.AnalysisReport.Data.Data.ConcernAreas.map((concern, index) => (
+                    <li key={index}>{concern}</li>
+                  ))}
+                </ul>
+              </div>
 
-                <p>
-                  <Typography>Concern Areas</Typography>
-                  <ul>
-                    {caseStudyData.UserResponse.AnalysisReport.Data.Data.ConcernAreas.map((concern, index) => (
-                      <li key={index}>{concern}</li>
-                    ))}
-                  </ul>
-                </p>
-
-                <p>
-                  <Typography>Sentiment Analysis</Typography>
-                  <ul>
-                    <li>{caseStudyData.UserResponse.AnalysisReport.Data.Data.SentimentAnalysis}</li>
-                  </ul>
-                </p>
-            </Typography>
+              <div className="analysis-section">
+                <Typography className="section-title">Sentiment Analysis</Typography>
+                <ul className="analysis-list">
+                  <li>{caseStudyData.UserResponse.AnalysisReport.Data.Data.SentimentAnalysis}</li>
+                </ul>
+              </div>
+            </div>
           </div>
         }
       </div>

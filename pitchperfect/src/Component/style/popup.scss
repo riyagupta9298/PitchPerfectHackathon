@@ -107,6 +107,26 @@
     @include primary-button;
   }
 
+  .close-icon-button {
+    position: absolute;
+    right: 24px;
+    top: 24px;
+    color: #FFFFFF;
+    background-color: transparent;
+    padding: 8px;
+    min-width: auto;
+    min-height: auto;
+    z-index: 10;
+
+    &:hover {
+      background-color: transparent;
+    }
+
+    svg {
+      font-size: 28px;
+    }
+  }
+
   .confirmation-header {
     background-color: #1A203E;
     padding: 16px 24px;
@@ -145,20 +165,24 @@
   }
 
   .question-details-header {
-    padding: 16px 24px;
+    padding: 10px 16px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     cursor: pointer;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-   
+
 
     &:hover {
       background-color: rgba(255, 255, 255, 0.05);
     }
 
     .question-number {
-      @include secondary-text;
+      font-family: Roboto;
+      font-weight: 400;
+      font-size: 13px;
+      line-height: 18px;
+      color: $text-color-secondary;
       margin-bottom: 0;
     }
 
@@ -168,23 +192,46 @@
       align-items: center;
 
       svg {
-        font-size: 24px;
+        font-size: 20px;
       }
     }
   }
 
   .question-details {
-    padding: 10px 24px;
-    margin-bottom: 16px;
+    padding: 6px 12px;
+    margin-bottom: 10px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     animation: fadeIn 0.3s ease-out;
+    height: auto;
 
-    .question-full-text {
-      @include body-text;
-     
-      padding-right: 10px;
+    .question-text {
+      flex-grow: 1;
+      padding-right: 0;
+      overflow: visible;
 
-    
+      .question-paragraph {
+        font-family: Roboto;
+        font-weight: 400;
+        font-size: 14px;
+        line-height: 21px;
+        letter-spacing: 0.2px;
+        color: $text-color;
+        margin-bottom: 6px;
+        padding: 6px 10px 6px 12px;
+        background-color: rgba(26, 32, 62, 0.3);
+        border-radius: 6px;
+        position: relative;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        border-left: 2px solid $primary-color;
+
+        &:before {
+          display: none;
+        }
+
+        &:last-child {
+          margin-bottom: 0;
+        }
+      }
     }
   }
 
@@ -457,7 +504,7 @@
         justify-content: space-between;
         width: 100%;
 
-       
+
 
         .simple-audio-player {
           flex: 1;
@@ -466,4 +513,176 @@
     }
   }
 
+  .analysis-report-section {
+    padding: 0 16px 16px;
+    margin-bottom: 12px;
+    animation: fadeIn 0.3s ease-out;
+
+    .analysis-header-section {
+      margin-bottom: 16px;
+      padding: 16px;
+      background-color: #1A203E;
+      border-radius: $border-radius;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+
+      .header-content {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+
+        @media (max-width: 768px) {
+          flex-direction: column;
+          gap: 16px;
+        }
+      }
+
+      .analysis-title {
+        font-family: Roboto;
+        font-weight: 600;
+        font-size: 18px;
+        line-height: 24px;
+        color: $text-color;
+        position: relative;
+        padding-left: 16px;
+        margin: 0;
+
+        &:before {
+          content: '';
+          position: absolute;
+          left: 0;
+          top: 0;
+          bottom: 0;
+          width: 4px;
+          background-color: $primary-color;
+          border-radius: 2px;
+        }
+      }
+
+      .scores-container {
+        display: flex;
+        gap: 24px;
+      }
+
+      .score-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+
+        .score-circle {
+          width: 60px;
+          height: 60px;
+          border-radius: 50%;
+          background: linear-gradient(135deg, #AB9BFA 0%, #6F5CC3 100%);
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          box-shadow: 0 2px 8px rgba(171, 155, 250, 0.3);
+          position: relative;
+
+          &:before {
+            content: '';
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            right: 3px;
+            bottom: 3px;
+            border-radius: 50%;
+            background-color: #1A203E;
+            z-index: 1;
+          }
+
+          .score-value {
+            font-family: Roboto;
+            font-weight: 700;
+            font-size: 24px;
+            line-height: 24px;
+            color: $primary-color;
+            position: relative;
+            z-index: 2;
+          }
+        }
+
+        .score-label {
+          font-family: Roboto;
+          font-weight: 500;
+          font-size: 14px;
+          line-height: 18px;
+          color: $text-color-secondary;
+        }
+      }
+    }
+
+    .analysis-content {
+      background-color: #1A203E;
+      border-radius: $border-radius;
+      padding: 16px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+
+      .analysis-section {
+        margin-bottom: 16px;
+        background-color: rgba(26, 32, 62, 0.5);
+        border-radius: $border-radius;
+        padding: 12px 16px;
+        border-left: 3px solid $primary-color;
+
+        &:last-child {
+          margin-bottom: 0;
+        }
+
+        .section-title {
+          font-family: Roboto;
+          font-weight: 600;
+          font-size: 15px;
+          line-height: 20px;
+          color: $primary-color;
+          margin-bottom: 10px;
+          padding-bottom: 6px;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+          display: flex;
+          align-items: center;
+
+          &:before {
+            content: '';
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            background-color: $primary-color;
+            border-radius: 50%;
+            margin-right: 8px;
+          }
+        }
+
+        .analysis-list {
+          margin: 0;
+          padding-left: 16px;
+
+          li {
+            font-family: Roboto;
+            font-weight: 400;
+            font-size: 14px;
+            line-height: 22px;
+            color: #F5F5F5;
+            margin-bottom: 8px;
+            padding-left: 4px;
+            position: relative;
+
+            &:before {
+              content: '';
+              position: absolute;
+              left: -10px;
+              top: 6px;
+              width: 4px;
+              height: 4px;
+              background-color: rgba(171, 155, 250, 0.5);
+              border-radius: 50%;
+            }
+
+            &:last-child {
+              margin-bottom: 0;
+            }
+          }
+        }
+      }
+    }
+  }
 }

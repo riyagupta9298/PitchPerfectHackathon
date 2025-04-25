@@ -76,8 +76,8 @@ const QuestionAnalysis = ({ onBack, caseStudies, caseStudyId, onStartQuestion })
 
     useEffect(() => {
         if (analysisData && (
-            analysisData.keywordsToUse?.length > 0 || 
-            analysisData.nextMinuteTips?.length > 0 || 
+            analysisData.keywordsToUse?.length > 0 ||
+            analysisData.nextMinuteTips?.length > 0 ||
             analysisData.sentimentTips?.length > 0
         )) {
             setShowKeywords(true);
@@ -120,16 +120,18 @@ const QuestionAnalysis = ({ onBack, caseStudies, caseStudyId, onStartQuestion })
                     <Typography className="question-counter">
                         Question {questionData.number}/{questionData.total}
                     </Typography>
-                    <Typography className="question-text">
+                    <div className="question-text">
                         {questionData.text.split('\n').map((line, index) => (
-                            <React.Fragment key={index}>
-                                {line}
-                                {index < questionData.text.split('\n').length - 1 && <br />}
-                            </React.Fragment>
+                            line.trim() ? (
+                                <Typography key={index} component="p" className="question-paragraph">
+                                    <span className="question-bullet"></span>
+                                    {line}
+                                </Typography>
+                            ) : null
                         ))}
-                    </Typography>
+                    </div>
 
-                    <AudioRecorder 
+                    <AudioRecorder
                         allowedTime={questionData.allowedTime}
                         onRecordingStart={handleRecordingStart}
                         onRecordingStop={() => setIsRecordingDone(true)}
@@ -177,10 +179,10 @@ const QuestionAnalysis = ({ onBack, caseStudies, caseStudyId, onStartQuestion })
                         {/* Confidence Metric */}
                         <div className="metric-item confidence-item">
                             <div className="confidence-bars-container">
-                                <div className={`confidence-bar ${analysisData.confidenceScore > 80 ? 'Green' : ''}`} />
-                                <div className={`confidence-bar ${analysisData.confidenceScore > 60 ? 'Green' : ''}`} />
-                                <div className={`confidence-bar ${analysisData.confidenceScore > 40 ? 'Yellow' : ''}`} />
-                                <div className={`confidence-bar ${analysisData.confidenceScore > 20 ? 'Yellow' : ''}`} />
+                                <div className={`confidence-bar ${analysisData.confidenceScore > 8 ? 'Green' : ''}`} />
+                                <div className={`confidence-bar ${analysisData.confidenceScore > 6 ? 'Green' : ''}`} />
+                                <div className={`confidence-bar ${analysisData.confidenceScore > 4 ? 'Yellow' : ''}`} />
+                                <div className={`confidence-bar ${analysisData.confidenceScore > 2 ? 'Yellow' : ''}`} />
                                 <div className={`confidence-bar ${analysisData.confidenceScore > 0 ? 'Red' : ''}`} />
                             </div>
                             <Typography className="metric-label">
@@ -217,17 +219,21 @@ const QuestionAnalysis = ({ onBack, caseStudies, caseStudyId, onStartQuestion })
                                 <Typography className="column-title">
                                     Next Minute Tips
                                 </Typography>
-                                <div className="keywords-grid">
-                                    {analysisData.nextMinuteTips.slice(0,2).map((tip, index) => (
-                                        <div key={index} className="keyword-chip" title={tip}>
-                                            {tip}
-                                        </div>
-                                    ))}
-                                    {analysisData.sentimentTips.slice(0,2).map((tip, index) => (
-                                        <div key={index} className="keyword-chip" title={tip}>
-                                            {tip}
-                                        </div>
-                                    ))}
+                                <div className="keywords-grid vertical-grid">
+                                    <div className="vertical-column">
+                                        {analysisData.nextMinuteTips.slice(0,2).map((tip, index) => (
+                                            <div key={index} className="keyword-chip" title={tip}>
+                                                {tip}
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div className="vertical-column">
+                                        {analysisData.sentimentTips.slice(0,2).map((tip, index) => (
+                                            <div key={index} className="keyword-chip" title={tip}>
+                                                {tip}
+                                            </div>
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
                         </div>

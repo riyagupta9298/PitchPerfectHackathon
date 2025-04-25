@@ -501,8 +501,8 @@
             grid-area: question;
             background-color: #151C39;
             border-radius: 8px;
-            padding: 24px;
-            height: 360px;
+            padding: 15px 24px;
+            height: 380px;
             display: flex;
             flex-direction: column;
             animation: fadeIn 0.4s ease-out forwards;
@@ -524,7 +524,7 @@
                 letter-spacing: 0.3px;
                 flex-grow: 1;
                 color: #F5F5F5;
-                max-height: 220px;
+                max-height: 250px;
                 overflow-y: auto;
                 padding-right: 10px;
 
@@ -564,7 +564,7 @@
                 font-weight: 400;
                 font-size: 16px;
                 line-height: 22px;
-                margin-top: 2rem;
+                margin-top: 1.2rem;
 
                 &:hover {
                     background-color: #9485e0;
@@ -573,7 +573,7 @@
 
             .recording-controls {
                 width: 100%;
-                margin-top: 2rem;
+                margin-top: 1.2rem;
                 display: flex;
                 gap: 16px;
                 align-items: center;
@@ -694,7 +694,7 @@
             background-color: #151C39;
             border-radius: 12px;
             padding: 20px;
-            height: 360px;
+            height: 380px;
             width: 100%;
             color: #ffffff;
         }

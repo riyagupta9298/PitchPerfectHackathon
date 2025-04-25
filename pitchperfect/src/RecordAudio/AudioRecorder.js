@@ -1,16 +1,16 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Button, Typography, CircularProgress } from '@mui/material';
 import MicIcon from '@mui/icons-material/Mic';
-import dayjs from 'dayjs';
+import dayjs from './dayjs';
 import axios from 'axios';
 
 const AudioRecorder = (props) => {
     const { allowedTime, onRecordingStart, onRecordingStop, onSubmit, isRecordingDone, currentCaseStudyId, onAnalysisUpdate } = props;
-    
+
     const [isRecording, setIsRecording] = useState(false);
     const [remainingTime, setRemainingTime] = useState(allowedTime);
     const [isSendingFinal, setIsSendingFinal] = useState(false);
-    
+
     const audioContextRef = useRef(null);
     const streamRef = useRef(null);
     const processorRef = useRef(null);
@@ -28,7 +28,7 @@ const AudioRecorder = (props) => {
             timerRef.current = setInterval(() => {
                 setRemainingTime(prev => {
                     const newTime = prev - 1;
-                    
+
                     if (newTime <= 0) {
                         handleStopRecording();
                         return 0;
@@ -74,7 +74,7 @@ const AudioRecorder = (props) => {
                 audioChunks.current.push(audioData);
                 finalAudioChunks.current.push(audioData);
             };
-            
+
             setIsRecording(true);
             setRemainingTime(allowedTime);
             onRecordingStart();
@@ -87,7 +87,7 @@ const AudioRecorder = (props) => {
         try {
             setIsSendingFinal(true);
             setIsRecording(false);
-            
+
             if (timerRef.current) {
                 clearInterval(timerRef.current);
             }
@@ -105,7 +105,7 @@ const AudioRecorder = (props) => {
             }
 
             onRecordingStop();
-            
+
             try {
                 await sendAudioChunk(true);
             } catch (error) {
@@ -118,7 +118,7 @@ const AudioRecorder = (props) => {
 
             audioChunks.current = [];
             finalAudioChunks.current = [];
-            
+
             setIsSendingFinal(false);
         } catch (error) {
             console.error('Error in handleStopRecording:', error);
@@ -128,7 +128,7 @@ const AudioRecorder = (props) => {
 
     const sendAudioChunk = async (isFinal = false) => {
         const chunksToSend = audioChunks.current;
-        
+
         if (chunksToSend.length === 0) return;
 
         const chunk = flattenBuffers(chunksToSend);
