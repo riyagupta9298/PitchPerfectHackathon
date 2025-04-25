@@ -154,13 +154,13 @@ const QuestionAnalysis = ({ onBack, caseStudies, caseStudyId, onStartQuestion })
                             <div className="score-circle">
                                 <CircularProgress
                                     variant="determinate"
-                                    value={analysisData.overallScore * 10}
+                                    value={analysisData.overallScore}
                                     size={134}
                                     thickness={2}
                                     className={`score-progress ${getProgressColor(analysisData.overallScore)}`}
                                 />
                                 <Typography className="score-value">
-                                    {analysisData.overallScore * 10}
+                                    {analysisData.overallScore}
                                 </Typography>
                             </div>
                             <Typography className="metric-label">

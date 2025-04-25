@@ -87,20 +87,6 @@ const Login = () => {
                                 type={showPassword ? "text" : "password"}
                                 value={formData.password}
                                 onChange={handleChange}
-                                slotProps={{
-                                    input: {
-                                        endAdornment: (
-                                            <InputAdornment position="end">
-                                                <IconButton
-                                                    onClick={() => setShowPassword(!showPassword)}
-                                                    edge="end"
-                                                >
-                                                    {showPassword ? <VisibilityOff /> : <Visibility />}
-                                                </IconButton>
-                                            </InputAdornment>
-                                        ),
-                                    },
-                                }}
                             />
                         </div>
 

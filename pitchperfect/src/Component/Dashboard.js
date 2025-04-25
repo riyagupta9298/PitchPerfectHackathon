@@ -122,7 +122,7 @@ const Dashboard = ({ onStartQuestion, caseStudies, setCaseStudies }) => {
                                 Improve your Term Insurance Pitch
                             </Typography>
                             <Typography variant="body2" className="subtitle">
-                                Answer 5 targeted questions to gain actionable insights and connect with customers more effectively
+                                Answer {caseStudies.length} targeted questions to gain actionable insights and connect with customers more effectively
                             </Typography>
                             <Box className="module-score-footer">
                                 {isModuleCompleted && 
@@ -132,13 +132,13 @@ const Dashboard = ({ onStartQuestion, caseStudies, setCaseStudies }) => {
                                             <Box className="score-circle">
                                                 <CircularProgress
                                                     variant="determinate"
-                                                    value={overallModuleScore * 10}
+                                                    value={overallModuleScore}
                                                     size={45}
                                                     thickness={4}
                                                     className={`score-progress ${getProgressColor(overallModuleScore)}`}
                                                 />
                                                 <Typography className="score-value">
-                                                    {overallModuleScore * 10}
+                                                    {overallModuleScore}
                                                 </Typography>
                                             </Box>
                                         </Box>
