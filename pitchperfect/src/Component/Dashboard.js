@@ -155,10 +155,10 @@ const Dashboard = ({ onStartQuestion, caseStudies, setCaseStudies }) => {
                                         <Box className="score-item">
                                             <Typography className="score-label">Your confidence score:</Typography>
                                             <Box className="confidence-bars-container">
-                                                <div className={`confidence-bar ${overallConfidenceScore > 8 ? 'Green' : ''}`} />
-                                                <div className={`confidence-bar ${overallConfidenceScore > 6 ? 'Green' : ''}`} />
-                                                <div className={`confidence-bar ${overallConfidenceScore > 4 ? 'Yellow' : ''}`} />
-                                                <div className={`confidence-bar ${overallConfidenceScore > 2 ? 'Yellow' : ''}`} />
+                                                <div className={`confidence-bar ${overallConfidenceScore > 80 ? 'Green' : ''}`} />
+                                                <div className={`confidence-bar ${overallConfidenceScore > 60 ? 'Green' : ''}`} />
+                                                <div className={`confidence-bar ${overallConfidenceScore > 40 ? 'Yellow' : ''}`} />
+                                                <div className={`confidence-bar ${overallConfidenceScore > 20 ? 'Yellow' : ''}`} />
                                                 <div className={`confidence-bar ${overallConfidenceScore > 0 ? 'Red' : ''}`} />
                                             </Box>
                                         </Box>

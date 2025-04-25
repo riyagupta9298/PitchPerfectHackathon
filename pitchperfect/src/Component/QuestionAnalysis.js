@@ -177,10 +177,10 @@ const QuestionAnalysis = ({ onBack, caseStudies, caseStudyId, onStartQuestion })
                         {/* Confidence Metric */}
                         <div className="metric-item confidence-item">
                             <div className="confidence-bars-container">
-                                <div className={`confidence-bar ${analysisData.confidenceScore > 8 ? 'Green' : ''}`} />
-                                <div className={`confidence-bar ${analysisData.confidenceScore > 6 ? 'Green' : ''}`} />
-                                <div className={`confidence-bar ${analysisData.confidenceScore > 4 ? 'Yellow' : ''}`} />
-                                <div className={`confidence-bar ${analysisData.confidenceScore > 2 ? 'Yellow' : ''}`} />
+                                <div className={`confidence-bar ${analysisData.confidenceScore > 80 ? 'Green' : ''}`} />
+                                <div className={`confidence-bar ${analysisData.confidenceScore > 60 ? 'Green' : ''}`} />
+                                <div className={`confidence-bar ${analysisData.confidenceScore > 40 ? 'Yellow' : ''}`} />
+                                <div className={`confidence-bar ${analysisData.confidenceScore > 20 ? 'Yellow' : ''}`} />
                                 <div className={`confidence-bar ${analysisData.confidenceScore > 0 ? 'Red' : ''}`} />
                             </div>
                             <Typography className="metric-label">
