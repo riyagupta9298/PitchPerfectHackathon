@@ -18,6 +18,7 @@ const Dashboard = ({ onStartQuestion, caseStudies, setCaseStudies }) => {
     const [selectedQuestion, setSelectedQuestion] = useState(null);
     const [overallModuleScore, setOverallModuleScore] = useState(0);
     const [overallConfidenceScore, setOverallConfidenceScore] = useState(0);
+    const [pendingCaseStudyId, setPendingCaseStudyId] = useState(null);
 
     useEffect(() => {
         fetchCaseStudies();
@@ -84,8 +85,9 @@ const Dashboard = ({ onStartQuestion, caseStudies, setCaseStudies }) => {
             });
             setShowDetailedReport(true);
         } else {
-            // For unattempted questions, start the question
-            onStartQuestion(caseStudyItem.CaseStudy.CaseStudyId);
+            // For unattempted questions, show instructions first
+            setPendingCaseStudyId(caseStudyItem.CaseStudy.CaseStudyId);
+            setOpenInstructionsDialog(true);
         }
     };
 
@@ -95,10 +97,18 @@ const Dashboard = ({ onStartQuestion, caseStudies, setCaseStudies }) => {
     };
 
     const handleStartModule = () => {
-        const firstUnattemptedId = getFirstUnattemptedCaseStudyId(caseStudies);
-        if (firstUnattemptedId) {
-            onStartQuestion(firstUnattemptedId);
+        // If there's a pending case study, start that specific one
+        if (pendingCaseStudyId) {
+            onStartQuestion(pendingCaseStudyId);
+            setPendingCaseStudyId(null);
+        } else {
+            // Otherwise, find the first unattempted case study (original behavior)
+            const firstUnattemptedId = getFirstUnattemptedCaseStudyId(caseStudies);
+            if (firstUnattemptedId) {
+                onStartQuestion(firstUnattemptedId);
+            }
         }
+        setOpenInstructionsDialog(false);
     };
 
     return (
@@ -119,16 +129,16 @@ const Dashboard = ({ onStartQuestion, caseStudies, setCaseStudies }) => {
 
                         <Box className="text-content">
                             <Typography variant="h5" className="title">
-                                Improve your Term Insurance Pitch
+                                Improve your Pitch with Confidence
                             </Typography>
                             <Typography variant="body2" className="subtitle">
-                                Answer {caseStudies.length} targeted questions to gain actionable insights and connect with customers more effectively
+                                Solve the case studies to gain actionable insights and connect with customers more <b>efficiently</b> and effectively
                             </Typography>
                             <Box className="module-score-footer">
                                 {isModuleCompleted && 
                                     <Box className="scores-container">
                                         <Box className="score-item">
-                                            <Typography className="score-label">Module score:</Typography>
+                                            <Typography className="score-label">Your average score:</Typography>
                                             <Box className="score-circle">
                                                 <CircularProgress
                                                     variant="determinate"
@@ -143,7 +153,7 @@ const Dashboard = ({ onStartQuestion, caseStudies, setCaseStudies }) => {
                                             </Box>
                                         </Box>
                                         <Box className="score-item">
-                                            <Typography className="score-label">Average confidence score:</Typography>
+                                            <Typography className="score-label">Your confidence score:</Typography>
                                             <Box className="confidence-bars-container">
                                                 <div className={`confidence-bar ${overallConfidenceScore > 8 ? 'Green' : ''}`} />
                                                 <div className={`confidence-bar ${overallConfidenceScore > 6 ? 'Green' : ''}`} />
@@ -170,7 +180,7 @@ const Dashboard = ({ onStartQuestion, caseStudies, setCaseStudies }) => {
                 <Box className="questions-section">
                     <Box className="questions-header">
                         <Typography className="title">
-                            All questions
+                            Case Studies
                         </Typography>
                         <Typography className="counter">
                             {attemptedCount}/{caseStudies.length} unlocked
@@ -206,7 +216,10 @@ const Dashboard = ({ onStartQuestion, caseStudies, setCaseStudies }) => {
             {/* Instructions Dialog */}
             <InstructionsDialog
                 open={openInstructionsDialog}
-                onClose={() => setOpenInstructionsDialog(false)}
+                onClose={() => {
+                    setOpenInstructionsDialog(false);
+                    setPendingCaseStudyId(null);
+                }}
                 onStart={handleStartModule}
             />
 

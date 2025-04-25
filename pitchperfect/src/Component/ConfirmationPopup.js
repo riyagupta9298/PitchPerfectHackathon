@@ -1,12 +1,21 @@
 import React from 'react';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import { Typography, Button } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
+import { Typography, Button, IconButton } from '@mui/material';
 import './style/dashboard.scss';
 
-const ConfirmationPopup = ({ onSeeReport, onNextQuestion }) => {
+const ConfirmationPopup = ({ onSeeReport, onNextQuestion, closeBtn }) => {
   return (
     <div className="confirmation-overlay">
       <div className="confirmation-popup-original">
+        <IconButton
+            aria-label="close"
+            onClick={closeBtn}
+            className="close-button"
+            disableRipple
+          >
+            <CloseIcon />
+        </IconButton>
         <div className="confirmation-icon">
           <CheckCircleIcon fontSize="large" />
         </div>

@@ -91,6 +91,7 @@ const QuestionAnalysis = ({ onBack, caseStudies, caseStudyId, onStartQuestion })
                 <ConfirmationPopup
                     onSeeReport={handleSeeReport}
                     onNextQuestion={handleNextQuestion}
+                    closeBtn={onBack}
                 />
             )}
 
@@ -120,7 +121,12 @@ const QuestionAnalysis = ({ onBack, caseStudies, caseStudyId, onStartQuestion })
                         Question {questionData.number}/{questionData.total}
                     </Typography>
                     <Typography className="question-text">
-                        {questionData.text}
+                        {questionData.text.split('\n').map((line, index) => (
+                            <React.Fragment key={index}>
+                                {line}
+                                {index < questionData.text.split('\n').length - 1 && <br />}
+                            </React.Fragment>
+                        ))}
                     </Typography>
 
                     <AudioRecorder 
@@ -145,7 +151,7 @@ const QuestionAnalysis = ({ onBack, caseStudies, caseStudyId, onStartQuestion })
                         </Typography>
                     </div>
                     <Typography className="analysis-subtitle">
-                        The score refreshes after every 40 seconds.
+                        The score refreshes after every 30 seconds.
                     </Typography>
 
                     <div className="metrics-container">
@@ -187,33 +193,47 @@ const QuestionAnalysis = ({ onBack, caseStudies, caseStudyId, onStartQuestion })
                 {/* Keywords Section */}
                 <div className="keywords-section">
                     <Typography className="keywords-title">
-                        Helping keywords and suggestions
+                        Suggestions
                     </Typography>
                     <Typography className="keywords-subtitle">
-                        Keywords and suggestions help you better your score and your overall pitch, so you can sell more, more efficiently.
+                        Suggestions help you better your score and your overall pitch, so you can sell more, more efficiently.
                     </Typography>
 
                     {showKeywords && analysisData ? (
-                        <div className="keywords-grid">
-                            {analysisData.keywordsToUse.map((keywordItem, index) => (
-                                <div key={index} className="keyword-chip">
-                                    {keywordItem}
+                        <div className="keywords-container">
+                             <div className="keywords-column">
+                                <Typography className="column-title">
+                                    Helping Keywords
+                                </Typography>
+                                <div className="keywords-grid">
+                                    {analysisData.keywordsToUse.map((keywordItem, index) => (
+                                        <div key={index} className="keyword-chip">
+                                            {keywordItem}
+                                        </div>
+                                    ))}
                                 </div>
-                            ))}
-                            {analysisData.nextMinuteTips.map((tip, index) => (
-                                <div key={index} className="keyword-chip">
-                                    {tip}
+                            </div>
+                            <div className="keywords-column">
+                                <Typography className="column-title">
+                                    Next Minute Tips
+                                </Typography>
+                                <div className="keywords-grid">
+                                    {analysisData.nextMinuteTips.slice(0,2).map((tip, index) => (
+                                        <div key={index} className="keyword-chip" title={tip}>
+                                            {tip}
+                                        </div>
+                                    ))}
+                                    {analysisData.sentimentTips.slice(0,2).map((tip, index) => (
+                                        <div key={index} className="keyword-chip" title={tip}>
+                                            {tip}
+                                        </div>
+                                    ))}
                                 </div>
-                            ))}
-                            {analysisData.sentimentTips.map((tip, index) => (
-                                <div key={index} className="keyword-chip">
-                                    {tip}
-                                </div>
-                            ))}
+                            </div>
                         </div>
                     ) : (
                         <Typography className="keywords-pending">
-                            Keywords will start displaying after 40 seconds of recording
+                            Suggestions will start displaying after 30 seconds of recording
                         </Typography>
                     )}
                 </div>

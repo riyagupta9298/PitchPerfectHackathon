@@ -12,6 +12,7 @@
   justify-content: center;
   align-items: center;
   z-index: 1000;
+  cursor: pointer;
 }
 
 // Original Confirmation Popup
@@ -26,6 +27,27 @@
   flex-direction: column;
   align-items: center;
   text-align: center;
+  cursor: default;
+  position: relative;
+
+  .close-button {
+    position: absolute;
+    right: 24px;
+    top: 24px;
+    color: #FFFFFF;
+    background-color: transparent;
+    padding: 8px;
+    min-width: auto;
+    min-height: auto;
+
+    &:hover {
+      background-color: transparent;
+    }
+
+    svg {
+      font-size: 28px;
+    }
+  }
 
   .confirmation-icon {
     color: $primary-color;
@@ -71,11 +93,19 @@
   background-color: #31385E;
   border-radius: 12px;
   width: 90%;
-  max-width: 800px;
-  max-height: 90vh;
+  max-width: 1150px;
+  max-height: 95vh;
+  height: 650px;
   overflow-y: auto;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
   animation: fadeIn 0.3s ease-out forwards;
+  cursor: default;
+  position: relative;
+
+  .close-button {
+    margin-left: 10px;
+    @include primary-button;
+  }
 
   .confirmation-header {
     background-color: #1A203E;
@@ -114,18 +144,47 @@
     }
   }
 
-  .question-details {
+  .question-details-header {
     padding: 16px 24px;
-    margin-bottom: 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+   
+
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.05);
+    }
 
     .question-number {
       @include secondary-text;
-      margin-bottom: 8px;
+      margin-bottom: 0;
     }
+
+    .toggle-icon {
+      color: #AB9BFA;
+      display: flex;
+      align-items: center;
+
+      svg {
+        font-size: 24px;
+      }
+    }
+  }
+
+  .question-details {
+    padding: 10px 24px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    animation: fadeIn 0.3s ease-out;
 
     .question-full-text {
       @include body-text;
+     
+      padding-right: 10px;
+
+    
     }
   }
 
@@ -134,7 +193,8 @@
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 24px;
-    margin-bottom: 16px;
+    margin-top: 15px;
+    margin-bottom: 10px;
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 
     @media (max-width: 768px) {
@@ -395,7 +455,6 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        margin-bottom: 12px;
         width: 100%;
 
        

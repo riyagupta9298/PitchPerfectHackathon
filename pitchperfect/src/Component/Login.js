@@ -62,8 +62,7 @@ const Login = () => {
 
                         <h1 className="login-header__title">Welcome to Pitch perfect</h1>
                         <p className="login-header__subtitle">
-                            A tool to help you analyze and improve your pitch, to help you
-                            sell better
+                            AI tool to gain insights into your pitch and elevate your sales strategy.
                         </p>
                     </div>
 
@@ -89,11 +88,7 @@ const Login = () => {
                                 onChange={handleChange}
                             />
                         </div>
-
-                        <div className="login-form__forgot-password">
-                            <a href="#forgot-password">Forgot password?</a>
-                        </div>
-
+                        
                         <button
                             type="submit"
                             className="login-form__submit-button"

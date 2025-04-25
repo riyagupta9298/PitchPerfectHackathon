@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
+import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 import { Typography, Button } from '@mui/material';
 import AudioPlayer from './AudioPlayer';
 import axios from 'axios';
@@ -9,6 +11,7 @@ const DetailedReportPopup = ({ questionData, onNextQuestion, showCloseBtn }) => 
   const [bestResponseAudio, setBestResponseAudio] = useState(null);
   const [userResponseAudio, setUserResponseAudio] = useState(null);
   const [caseStudyData, setCaseStudyData] = useState(null);
+  const [showQuestionDetails, setShowQuestionDetails] = useState(true);
   
   useEffect(() => {
     const fetchCaseStudyData = async () => {
@@ -51,6 +54,11 @@ const DetailedReportPopup = ({ questionData, onNextQuestion, showCloseBtn }) => 
     fetchCaseStudyData();
   }, [questionData.number]);
 
+
+  const toggleQuestionDetails = () => {
+    setShowQuestionDetails(!showQuestionDetails);
+  };
+
   const fetchAudio = async (audioId, setAudioCallback) => {
     try {
       const response = await axios({
@@ -83,6 +91,8 @@ const DetailedReportPopup = ({ questionData, onNextQuestion, showCloseBtn }) => 
     };
   }, [bestResponseAudio, userResponseAudio]);
 
+  const hasNextQuestion = questionData.number < questionData.total;
+
   return (
     <div className="confirmation-overlay">
       <div className="confirmation-popup">
@@ -93,23 +103,46 @@ const DetailedReportPopup = ({ questionData, onNextQuestion, showCloseBtn }) => 
               Response submitted
             </Typography>
           </div>
-          <Button
-            variant="contained"
-            className="next-button"
-            onClick={onNextQuestion}
-          >
-            {showCloseBtn ? 'Close' : 'Next question'}
-          </Button>
+          <div className="button-group">
+              {hasNextQuestion && !showCloseBtn && (
+                <Button
+                  variant="contained"
+                  className="next-button"
+                  onClick={onNextQuestion}
+                >
+                  Next question
+                </Button>
+              )}
+            <Button
+              variant="outlined"
+              className="close-button"
+              onClick={onNextQuestion}
+            >
+              Close
+            </Button>
+          </div>
         </div>
 
-        <div className="question-details">
+        <div className="question-details-header" onClick={toggleQuestionDetails}>
           <Typography className="question-number">
             Question {questionData.number}/{questionData.total}
           </Typography>
-          <Typography className="question-full-text">
-            {caseStudyData?.CaseStudy?.CaseStudyDesc || questionData.text}
-          </Typography>
+          <div className="toggle-icon">
+            {showQuestionDetails ? <KeyboardArrowDownIcon /> : <KeyboardArrowRightIcon />}
+          </div>
         </div>
+        {showQuestionDetails && (
+          <div className="question-details">
+            <Typography className="question-full-text">
+                {questionData.text.split('\n').map((line, index) => (
+                    <React.Fragment key={index}>
+                        {line}
+                        {index < questionData.text.split('\n').length - 1 && <br />}
+                    </React.Fragment>
+                ))}
+            </Typography>
+          </div>
+        )}
 
         <div className="responses-container">
           <div className="response-box">
@@ -130,12 +163,9 @@ const DetailedReportPopup = ({ questionData, onNextQuestion, showCloseBtn }) => 
                 audioSrc={bestResponseAudio}
               />
             </div>
-            <Typography className="best-response-credit">
-              Best response by Keysang Yonthan ('PW37624')
-            </Typography>
           </div>
         </div>
-        {caseStudyData?.UserResponse?.AnalysisReport?.Data?.Data && 
+        {caseStudyData?.UserResponse?.AnalysisReport?.Data?.Data?.length > 0 && 
           <div className="question-details">
 
             <Typography className="question-full-text">

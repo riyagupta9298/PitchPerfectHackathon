@@ -84,30 +84,46 @@ const AudioRecorder = (props) => {
     };
 
     const handleStopRecording = async () => {
-        setIsSendingFinal(true);
-        setIsRecording(false);
-        
-        if (timerRef.current) {
-            clearInterval(timerRef.current);
-        }
-
-        processorRef.current?.disconnect();
-        sourceRef.current?.disconnect();
-        audioContextRef.current?.close();
-        streamRef.current?.getTracks().forEach(track => track.stop());
-
-        onRecordingStop();
-        
         try {
-            await sendAudioChunk(true);
+            setIsSendingFinal(true);
+            setIsRecording(false);
+            
+            if (timerRef.current) {
+                clearInterval(timerRef.current);
+            }
+
+            if (streamRef.current) {
+                streamRef.current.getTracks().forEach(track => track.stop());
+            }
+
+            if (processorRef.current && processorRef.current.numberOfOutputs > 0) {
+                processorRef.current.disconnect();
+            }
+
+            if (sourceRef.current && sourceRef.current.numberOfOutputs > 0) {
+                sourceRef.current.disconnect();
+            }
+
+            onRecordingStop();
+            
+            try {
+                await sendAudioChunk(true);
+            } catch (error) {
+                console.error('Error sending final audio chunk:', error);
+            }
+
+            if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+                await audioContextRef.current.close();
+            }
+
+            audioChunks.current = [];
+            finalAudioChunks.current = [];
+            
             setIsSendingFinal(false);
         } catch (error) {
-            console.error('Error sending final audio chunk:', error);
+            console.error('Error in handleStopRecording:', error);
             setIsSendingFinal(false);
         }
-        
-        audioChunks.current = [];
-        finalAudioChunks.current = [];
     };
 
     const sendAudioChunk = async (isFinal = false) => {
@@ -222,11 +238,11 @@ const AudioRecorder = (props) => {
                 <div className="control-buttons">
                     <Button
                         variant="contained"
-                        className={`control-button done-button ${isSendingFinal ? 'processing' : ''}`}
+                        className={`control-button done-button`}
                         onClick={isRecording ? handleStopRecording : onSubmit}
                         disabled={isSendingFinal}
                     >
-                        {isRecording ? (isSendingFinal ? 'Processing...' : 'Done') : 'Submit'}
+                        {isRecording ? 'Done' : 'Submit'}
                     </Button>
                 </div>
             </div>
