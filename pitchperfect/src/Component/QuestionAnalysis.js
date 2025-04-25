@@ -14,8 +14,11 @@ const QuestionAnalysis = ({ onBack }) => {
   const [showDetailedReport, setShowDetailedReport] = useState(false);
 
   // Static data for the demo
-  const keywords = [
-    'Tax benefit', 'Risk reduction', 'Risk reduction', 'Risk reduction', 'Risk reduction',
+  const keywordsSection1 = [
+    'Tax benefit', 'Risk reduction', 'Risk reduction', 'Risk reduction', 'Risk reduction'
+  ];
+
+  const keywordsSection2 = [
     'Tax benefit', 'Risk reduction', 'Risk reduction', 'Risk reduction', 'Risk reduction'
   ];
 
@@ -69,6 +72,8 @@ const QuestionAnalysis = ({ onBack }) => {
         <ConfirmationPopup
           onSeeReport={handleSeeReport}
           onNextQuestion={handleNextQuestion}
+          onClose={() => setShowSubmitConfirmation(false)}
+          onGoToDashboard={onBack}
         />
       )}
 
@@ -77,6 +82,8 @@ const QuestionAnalysis = ({ onBack }) => {
         <DetailedReportPopup
           questionData={questionData}
           onNextQuestion={handleNextQuestion}
+          onClose={() => setShowDetailedReport(false)}
+          onGoToDashboard={onBack}
         />
       )}
 
@@ -218,19 +225,39 @@ const QuestionAnalysis = ({ onBack }) => {
         {/* Keywords Section */}
         <div className="keywords-section">
           <Typography className="keywords-title">
-            Helping keywords
+            Keywords
           </Typography>
           <Typography className="keywords-subtitle">
             Keywords help you better your score and your overall pitch, so you can sell more, more efficiently.
           </Typography>
 
           {isRecording || isRecordingDone ? (
-            <div className="keywords-grid">
-              {keywords.map((keyword, index) => (
-                <div key={index} className="keyword-chip">
-                  {keyword}
+            <div className="keywords-container">
+              <div className="keywords-column">
+                <Typography className="column-title">
+                  Helping keywords
+                </Typography>
+                <div className="keywords-grid">
+                  {keywordsSection1.map((keyword, index) => (
+                    <div key={index} className="keyword-chip" title={keyword}>
+                      {keyword}
+                    </div>
+                  ))}
                 </div>
-              ))}
+              </div>
+
+              <div className="keywords-column">
+                <Typography className="column-title">
+                   keywords
+                </Typography>
+                <div className="keywords-grid">
+                  {keywordsSection2.map((keyword, index) => (
+                    <div key={index} className="keyword-chip" title={keyword}>
+                      {keyword}
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
           ) : (
             <Typography className="keywords-pending">

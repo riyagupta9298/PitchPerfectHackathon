@@ -59,17 +59,17 @@ const Dashboard = ({ onStartQuestion }) => {
 
             <Box className="text-content">
               <Typography variant="h5" className="title">
-                Improve your Term Insurance Pitch
+              Improve your Pitch with Confidence
               </Typography>
               <Typography variant="body2" className="subtitle">
-                Answer 5 targeted questions to gain actionable insights and connect with customers more effectively
+              Solve the case studies to gain actionable insights and connect with customers more Effectively & Efficiently
               </Typography>
 
               {/* Module Score Footer */}
               <Box className="module-score-footer">
                 <Box className="scores-container">
                   <Box className="score-item">
-                    <Typography className="score-label">Module score:</Typography>
+                    <Typography className="score-label">Your average score:</Typography>
                     <Box className="score-circle">
                       <CircularProgress
                         variant="determinate"
@@ -85,7 +85,7 @@ const Dashboard = ({ onStartQuestion }) => {
                   </Box>
 
                   <Box className="score-item">
-                    <Typography className="score-label">Average confidence score:</Typography>
+                    <Typography className="score-label">Your confidence score:</Typography>
                     <Box className="confidence-bars-container">
                       {[...Array(4)].map((_, i) => (
                         <div
@@ -112,7 +112,7 @@ const Dashboard = ({ onStartQuestion }) => {
         <Box className="questions-section">
         <Box className="questions-header">
           <Typography className="title">
-            All questions
+          Case Studies
           </Typography>
           <Typography
             className="counter"
@@ -147,9 +147,8 @@ const Dashboard = ({ onStartQuestion }) => {
               alt="Empty folder"
               className="empty-icon"
             />
-            <Typography variant="body2" className="empty-text">
-              Your learning starts here, start the{'\n'}
-              module to see the questions.
+            <Typography variant="body2" className="empty-text">              
+              Start solving case studies to unlock and explore valuable insights.
             </Typography>
           </Box>
         )}
