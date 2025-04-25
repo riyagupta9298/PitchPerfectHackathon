@@ -151,6 +151,10 @@
                   animation-delay: #{(100 - $i) * 0.02}s;
                 }
               }
+
+              &.static-wave {
+                animation-play-state: paused;
+              }
             }
 
             @keyframes waveform-animation {
@@ -208,6 +212,22 @@
 
             &:hover {
               background-color: #B3A3EE;
+            }
+          }
+
+          .control-button {
+            &.done-button {
+              &.processing {
+                display: flex;
+                gap: 8px;
+                align-items: center;
+                opacity: 0.8;
+                pointer-events: none;
+                
+                .MuiCircularProgress-root {
+                  margin-right: 8px;
+                }
+              }
             }
           }
         }

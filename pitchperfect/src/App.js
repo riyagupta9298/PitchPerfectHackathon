@@ -1,37 +1,29 @@
-// src/App.js
-import React, { useState } from 'react';
-//import AudioRecorder from './RecordAudio/AudioRecorder';
+import React from 'react';
 import { CssBaseline, ThemeProvider, createTheme } from '@mui/material';
-// import Login from './Component/Login';
-import Dashboard from './Component/Dashboard';
-import QuestionAnalysis from './Component/QuestionAnalysis';
+import Login from './Component/Login';
 
 
 const theme = createTheme({
-  palette: {
-    primary: {
-      main: '#1976d2',
-    },
-    secondary: {
-      main: '#dc004e',
-    },
-  },
+	palette: {
+		primary: {
+			main: '#1976d2',
+		},
+		secondary: {
+			main: '#dc004e',
+		},
+	},
 });
 
 function App() {
-  const [currentView, setCurrentView] = useState('dashboard');
 
-  return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <div className="App">
-        {/* <AudioRecorder /> */}
-        {/* <Login /> */}
-        {currentView === 'dashboard' && <Dashboard onStartQuestion={() => setCurrentView('question')} />}
-        {currentView === 'question' && <QuestionAnalysis onBack={() => setCurrentView('dashboard')} />}
-      </div>
-    </ThemeProvider>
-  );
+	return (
+		<ThemeProvider theme={theme}>
+			<CssBaseline />
+			<div className="App">
+				<Login />
+			</div>
+		</ThemeProvider>
+	);
 }
 
 export default App;

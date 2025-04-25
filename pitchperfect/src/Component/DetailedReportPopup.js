@@ -1,10 +1,88 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import { Typography, Button } from '@mui/material';
 import AudioPlayer from './AudioPlayer';
+import axios from 'axios';
 import './style/index.scss';
 
-const DetailedReportPopup = ({ questionData, onNextQuestion }) => {
+const DetailedReportPopup = ({ questionData, onNextQuestion, showCloseBtn }) => {
+  const [bestResponseAudio, setBestResponseAudio] = useState(null);
+  const [userResponseAudio, setUserResponseAudio] = useState(null);
+  const [caseStudyData, setCaseStudyData] = useState(null);
+  
+  useEffect(() => {
+    const fetchCaseStudyData = async () => {
+      try {
+        const response = await axios.get(
+          'https://qainternalmatrixapi.policybazaar.com/api/WebSiteService/GetPitchPerfectCaseStudies',
+          {
+            params: {
+              UserID: '91227',
+              ProductID: '7'
+            },
+            headers: {
+              'source': 'matrix',
+              'authKey': 'LGsaWLYmF6YWNav',
+              'clientKey': 'L6YWNav'
+            }
+          }
+        );
+
+        if (response.data?.Status && Array.isArray(response.data.Data)) {
+          const currentCaseStudy = response.data.Data.find(
+            item => item.CaseStudy.CaseStudyId === questionData.number
+          );
+          
+          if (currentCaseStudy) {
+            setCaseStudyData(currentCaseStudy);
+            if (currentCaseStudy.CaseStudy.ExcellentPitch) {
+              fetchAudio(currentCaseStudy.CaseStudy.ExcellentPitch, setBestResponseAudio);
+            }
+            if (currentCaseStudy.IsAttempted && currentCaseStudy.UserResponse?.AudioFileId) {
+              fetchAudio(currentCaseStudy.UserResponse.AudioFileId, setUserResponseAudio);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching case studies:', error);
+      }
+    };
+
+    fetchCaseStudyData();
+  }, [questionData.number]);
+
+  const fetchAudio = async (audioId, setAudioCallback) => {
+    try {
+      const response = await axios({
+        method: 'GET',
+        url: `https://qainternalmatrixapi.policybazaar.com/api/WebSiteService/GetAudio/${audioId}`,
+        headers: {
+          'source': 'matrix',
+          'authKey': 'LGsaWLYmF6YWNav',
+          'clientKey': 'L6YWNav',
+        },
+        responseType: 'blob'
+      });
+
+      const audioBlob = new Blob([response.data], { type: 'audio/wav' });
+      const audioUrl = URL.createObjectURL(audioBlob);
+      setAudioCallback(audioUrl);
+    } catch (error) {
+      console.error('Error fetching audio:', error);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (bestResponseAudio) {
+        URL.revokeObjectURL(bestResponseAudio);
+      }
+      if (userResponseAudio) {
+        URL.revokeObjectURL(userResponseAudio);
+      }
+    };
+  }, [bestResponseAudio, userResponseAudio]);
+
   return (
     <div className="confirmation-overlay">
       <div className="confirmation-popup">
@@ -20,36 +98,95 @@ const DetailedReportPopup = ({ questionData, onNextQuestion }) => {
             className="next-button"
             onClick={onNextQuestion}
           >
-            Next question
+            {showCloseBtn ? 'Close' : 'Next question'}
           </Button>
         </div>
 
         <div className="question-details">
-          <Typography className="question-number">Question {questionData.number}/{questionData.total}</Typography>
-          <Typography className="question-full-text">{questionData.text}</Typography>
+          <Typography className="question-number">
+            Question {questionData.number}/{questionData.total}
+          </Typography>
+          <Typography className="question-full-text">
+            {caseStudyData?.CaseStudy?.CaseStudyDesc || questionData.text}
+          </Typography>
         </div>
 
         <div className="responses-container">
           <div className="response-box">
             <div className="response-header">
               <Typography className="response-title">Your response</Typography>
-              <AudioPlayer showPlaybackRate={true} />
+              <AudioPlayer 
+                showPlaybackRate={true}
+                audioSrc={userResponseAudio}
+              />
             </div>
           </div>
 
           <div className="response-box">
             <div className="response-header">
               <Typography className="response-title">Best response</Typography>
-              <AudioPlayer showPlaybackRate={true} />
+              <AudioPlayer 
+                showPlaybackRate={true}
+                audioSrc={bestResponseAudio}
+              />
             </div>
-            <Typography className="best-response-credit">Best response by Keysang Yonthan (PW37624)</Typography>
+            <Typography className="best-response-credit">
+              Best response by Keysang Yonthan ('PW37624')
+            </Typography>
           </div>
         </div>
-        <div className="question-details">
+        {caseStudyData?.UserResponse?.AnalysisReport?.Data?.Data && 
+          <div className="question-details">
 
-          <Typography className="question-full-text">{questionData.text}</Typography>
-        </div>
+            <Typography className="question-full-text">
+                <p>
+                  Overall Score is {caseStudyData.UserResponse.AnalysisReport.Data.Data.OverallScore}
+                </p>
+                <p>
+                  Confidence Score is {caseStudyData.UserResponse.AnalysisReport.Data.Data.ConfidenceScore}
+                </p>
 
+                <p>
+                  <Typography>Case Study Handling</Typography>
+                  <ul>
+                    <li>{caseStudyData.UserResponse.AnalysisReport.Data.Data.CaseStudyHandling}</li>
+                  </ul>
+                </p>
+
+                <p>
+                  <Typography>Keyword Usage Analysis</Typography>
+                  <ul>
+                    <li>{caseStudyData.UserResponse.AnalysisReport.Data.Data.KeywordUsageAnalysis}</li>
+                  </ul>
+                </p>
+
+                <p>
+                  <Typography>Improvement Suggestions</Typography>
+                  <ul>
+                    {caseStudyData.UserResponse.AnalysisReport.Data.Data.ImprovementSuggestions.map((suggestion, index) => (
+                      <li key={index}>{suggestion}</li>
+                    ))}
+                  </ul>
+                </p>
+
+                <p>
+                  <Typography>Concern Areas</Typography>
+                  <ul>
+                    {caseStudyData.UserResponse.AnalysisReport.Data.Data.ConcernAreas.map((concern, index) => (
+                      <li key={index}>{concern}</li>
+                    ))}
+                  </ul>
+                </p>
+
+                <p>
+                  <Typography>Sentiment Analysis</Typography>
+                  <ul>
+                    <li>{caseStudyData.UserResponse.AnalysisReport.Data.Data.SentimentAnalysis}</li>
+                  </ul>
+                </p>
+            </Typography>
+          </div>
+        }
       </div>
     </div>
   );

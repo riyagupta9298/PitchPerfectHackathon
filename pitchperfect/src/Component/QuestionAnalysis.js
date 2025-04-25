@@ -1,246 +1,225 @@
-import React, { useState } from 'react';
-import { Typography, IconButton, Button, CircularProgress } from '@mui/material';
+import React, { useState, useEffect } from 'react';
+import { Typography, IconButton, CircularProgress } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import MicIcon from '@mui/icons-material/Mic';
+import AudioRecorder from '../RecordAudio/AudioRecorder';
 import ConfirmationPopup from './ConfirmationPopup';
 import DetailedReportPopup from './DetailedReportPopup';
 import './style/dashboard.scss';
 
-const QuestionAnalysis = ({ onBack }) => {
-  // States for recording and UI control
-  const [isRecording, setIsRecording] = useState(false);
-  const [isRecordingDone, setIsRecordingDone] = useState(false);
-  const [showSubmitConfirmation, setShowSubmitConfirmation] = useState(false);
-  const [showDetailedReport, setShowDetailedReport] = useState(false);
+export const getProgressColor = (score) => {
+    if (score <= 2) return 'Red';
+    if (score <= 6) return 'Yellow';
+    return 'Green';
+};
 
-  // Static data for the demo
-  const keywords = [
-    'Tax benefit', 'Risk reduction', 'Risk reduction', 'Risk reduction', 'Risk reduction',
-    'Tax benefit', 'Risk reduction', 'Risk reduction', 'Risk reduction', 'Risk reduction'
-  ];
 
-  // Handle start answer button click
-  const handleStartAnswer = () => {
-    setIsRecording(true);
-    setIsRecordingDone(false);
-  };
+const QuestionAnalysis = ({ onBack, caseStudies, caseStudyId, onStartQuestion }) => {
+    const [showKeywords, setShowKeywords] = useState(false);
+    const [isRecordingDone, setIsRecordingDone] = useState(false);
+    const [showSubmitConfirmation, setShowSubmitConfirmation] = useState(false);
+    const [showDetailedReport, setShowDetailedReport] = useState(false);
+    const [analysisData, setAnalysisData] = useState({
+        overallScore: 0,
+        confidenceScore: 0,
+        nextMinuteTips: [],
+        sentimentTips: [],
+        keywordsToUse: []
+    });
 
-  // Handle done button click
-  const handleDone = () => {
-    setIsRecording(false);
-    setIsRecordingDone(true);
-  };
+    const currentCaseStudy = caseStudies.find(item => item.CaseStudy.CaseStudyId === caseStudyId);
 
-  // Handle submit button click
-  const handleSubmit = () => {
-    // Show the confirmation popup
-    setShowSubmitConfirmation(true);
-    console.log('Answer submitted');
-  };
+    const questionData = {
+        number: caseStudyId,
+        total: caseStudies.length,
+        text: currentCaseStudy?.CaseStudy?.CaseStudyDesc || "",
+        allowedTime: currentCaseStudy?.CaseStudy?.AllowedTimeToRecordInSecs || 180,
+        excellentPitch: currentCaseStudy?.CaseStudy?.ExcellentPitch,
+        keywords: currentCaseStudy?.CaseStudy?.KeywordsWithWeightage || [],
+    };
 
-  // Handle see report button click
-  const handleSeeReport = () => {
-    // Show the detailed report popup
-    setShowSubmitConfirmation(false);
-    setShowDetailedReport(true);
-    console.log('Showing detailed report');
-  };
+    const handleRecordingStart = () => {
+        setIsRecordingDone(false);
+        setShowKeywords(false);
+    };
 
-  // Handle next question button click
-  const handleNextQuestion = () => {
-    // Here you would navigate to the next question
-    setShowSubmitConfirmation(false);
-    setShowDetailedReport(false);
-    setIsRecordingDone(false);
-    console.log('Navigating to next question');
-  };
+    const handleSeeReport = () => {
+        setShowSubmitConfirmation(false);
+        setShowDetailedReport(true);
+    };
 
-  // Mock question data
-  const questionData = {
-    number: 1,
-    total: 5,
-    text: "Mr. Rajesh Sharma is a 35-year-old married professional residing in Mumbai. He and his spouse are both employed full-time and have recently purchased a home with a joint mortgage. They are planning to start a family soon. Mr. Sharma is seeking financial security to protect his family's future, cover outstanding debts, and ensure stability in case of unforeseen events. He values affordable insurance options that offer comprehensive coverage, including riders for critical illness and accidental death. A term insurance plan with a high claim settlement ratio and flexible premium options aligns with his priorities for safeguarding his family's financial well-being."
-  };
+    const handleNextQuestion = () => {
+        setShowSubmitConfirmation(false);
+        setShowDetailedReport(false);
+        setIsRecordingDone(false);
 
-  return (
-    <div className="question-analysis-container">
-      {/* Simple Confirmation Popup */}
-      {showSubmitConfirmation && (
-        <ConfirmationPopup
-          onSeeReport={handleSeeReport}
-          onNextQuestion={handleNextQuestion}
-        />
-      )}
+        // Find the next case study ID
+        const currentIndex = caseStudies.findIndex(item => item.CaseStudy.CaseStudyId === caseStudyId);
+        const nextIndex = currentIndex + 1;
 
-      {/* Detailed Report Popup */}
-      {showDetailedReport && (
-        <DetailedReportPopup
-          questionData={questionData}
-          onNextQuestion={handleNextQuestion}
-        />
-      )}
+        if (nextIndex < caseStudies.length) {
+            // If there's a next question, navigate to it
+            const nextCaseStudyId = caseStudies[nextIndex].CaseStudy.CaseStudyId;
+            onBack(); // First go back to dashboard
+            setTimeout(() => {
+                // Then start the next question
+                onStartQuestion(nextCaseStudyId);
+            }, 0);
+        } else {
+            // If this was the last question, just go back to dashboard
+            onBack();
+        }
+    };
 
-      <div className="header">
-        <IconButton className="back-button" onClick={onBack}>
-          <ArrowBackIcon />
-        </IconButton>
-        <img
-          src="../img/logo.svg"
-          alt="Pitch perfect"
-        />
-      </div>
-      <div className="question-analysis-grid">
-        {/* Question Section */}
-        <div className="question-section">
-          <Typography className="question-counter">
-            Question {questionData.number}/{questionData.total}
-          </Typography>
-          <Typography className="question-text">
-            {questionData.text}
-          </Typography>
+    const onAnalysisUpdate = (data) => {
+        setAnalysisData(data);
+    };
 
-          {/* Recording Controls */}
-          {isRecording ? (
-            <div className="recording-controls">
-              <div className="waveform-container">
-                <div className="audio-waveform">
-                  {/* Generate bars for the waveform visualization */}
-                  {Array.from({ length: 100 }, (_, i) => (
-                    <div
-                      key={i}
-                      className="waveform-bar"
-                    />
-                  ))}
-                </div>
-                <Typography className="recording-time">0:56</Typography>
-              </div>
+    useEffect(() => {
+        if (analysisData && (
+            analysisData.keywordsToUse?.length > 0 || 
+            analysisData.nextMinuteTips?.length > 0 || 
+            analysisData.sentimentTips?.length > 0
+        )) {
+            setShowKeywords(true);
+        }
+    }, [analysisData]);
 
-              <div className="control-buttons">
-                <Button
-                  variant="contained"
-                  className="control-button done-button"
-                  onClick={handleDone}
-                >
-                  Done
-                </Button>
-              </div>
-            </div>
-          ) : isRecordingDone ? (
-            <div className="recording-controls">
-              <div className="waveform-container">
-                <div className="audio-waveform">
-                  {/* Static waveform visualization after recording */}
-                  {Array.from({ length: 100 }, (_, i) => (
-                    <div
-                      key={i}
-                      className="waveform-bar"
-                      style={{ height: `${5 + Math.sin(i * 0.2) * 15}px` }}
-                    />
-                  ))}
-                </div>
-                <Typography className="recording-time">0:56</Typography>
-              </div>
-
-              <div className="control-buttons">
-                <Button
-                  variant="contained"
-                  className="control-button done-button"
-                  onClick={handleSubmit}
-                >
-                  Submit
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div className="start-answer-container">
-              <Button
-                variant="contained"
-                className="start-answer-button"
-                onClick={handleStartAnswer}
-                startIcon={<MicIcon />}
-              >
-                Start answer
-              </Button>
-            </div>
-          )}
-        </div>
-
-        {/* Analysis Section */}
-        <div className="analysis-section">
-          <div className="analysis-header">
-            <Typography className="analysis-title">
-              Analysis
-            </Typography>
-            <Typography className="analysis-status">
-              Pending
-            </Typography>
-          </div>
-          <Typography className="analysis-subtitle">
-            The score refresh after every minute.
-          </Typography>
-
-          <div className="metrics-container">
-            {/* Score Metric */}
-            <div className="metric-item score-item">
-              <div className="score-circle">
-                <CircularProgress
-                  variant="determinate"
-                  value={45}
-                  size={134}
-                  thickness={2}
-                  className="score-progress left-rotation Green"
+    return (
+        <div className="question-analysis-container">
+            {/* Simple Confirmation Popup */}
+            {showSubmitConfirmation && (
+                <ConfirmationPopup
+                    onSeeReport={handleSeeReport}
+                    onNextQuestion={handleNextQuestion}
                 />
-                <Typography className="score-value">
-                  45
-                </Typography>
-              </div>
-              <Typography className="metric-label">
-                Pitch score
-              </Typography>
+            )}
+
+            {/* Detailed Report Popup */}
+            {showDetailedReport && (
+                <DetailedReportPopup
+                    questionData={questionData}
+                    onNextQuestion={handleNextQuestion}
+                    showCloseBtn={false}
+                />
+            )}
+
+            <div className="header">
+                <IconButton className="back-button" onClick={onBack}>
+                    <ArrowBackIcon />
+                </IconButton>
+                <img
+                    src="../img/logo.svg"
+                    alt="Pitch perfect"
+                />
             </div>
+            <div className="question-analysis-grid">
+                {/* Question Section */}
 
-            {/* Confidence Metric */}
-            <div className="metric-item confidence-item">
-              <div className="confidence-bars-container">
-                <div className="confidence-bar"></div>
-                <div className="confidence-bar Green"></div>
-                <div className="confidence-bar Yellow"></div>
-                <div className="confidence-bar Yellow"></div>
-                <div className="confidence-bar Red"></div>
-              </div>
-              <Typography className="metric-label">
-                Confidence
-              </Typography>
-            </div>
-          </div>
-        </div>
+                <div className="question-section">
+                    <Typography className="question-counter">
+                        Question {questionData.number}/{questionData.total}
+                    </Typography>
+                    <Typography className="question-text">
+                        {questionData.text}
+                    </Typography>
 
-        {/* Keywords Section */}
-        <div className="keywords-section">
-          <Typography className="keywords-title">
-            Helping keywords
-          </Typography>
-          <Typography className="keywords-subtitle">
-            Keywords help you better your score and your overall pitch, so you can sell more, more efficiently.
-          </Typography>
-
-          {isRecording || isRecordingDone ? (
-            <div className="keywords-grid">
-              {keywords.map((keyword, index) => (
-                <div key={index} className="keyword-chip">
-                  {keyword}
+                    <AudioRecorder 
+                        allowedTime={questionData.allowedTime}
+                        onRecordingStart={handleRecordingStart}
+                        onRecordingStop={() => setIsRecordingDone(true)}
+                        onSubmit={() => setShowSubmitConfirmation(true)}
+                        isRecordingDone={isRecordingDone}
+                        currentCaseStudyId={caseStudyId}
+                        onAnalysisUpdate={onAnalysisUpdate}
+                    />
                 </div>
-              ))}
+
+                {/* Analysis Section */}
+                <div className="analysis-section">
+                    <div className="analysis-header">
+                        <Typography className="analysis-title">
+                            Analysis
+                        </Typography>
+                        <Typography className="analysis-status">
+                            {isRecordingDone ? 'Completed' : 'In Progress'}
+                        </Typography>
+                    </div>
+                    <Typography className="analysis-subtitle">
+                        The score refreshes after every 40 seconds.
+                    </Typography>
+
+                    <div className="metrics-container">
+                        {/* Score Metric */}
+                        <div className="metric-item score-item">
+                            <div className="score-circle">
+                                <CircularProgress
+                                    variant="determinate"
+                                    value={analysisData.overallScore * 10}
+                                    size={134}
+                                    thickness={2}
+                                    className={`score-progress ${getProgressColor(analysisData.overallScore)}`}
+                                />
+                                <Typography className="score-value">
+                                    {analysisData.overallScore * 10}
+                                </Typography>
+                            </div>
+                            <Typography className="metric-label">
+                                Pitch score
+                            </Typography>
+                        </div>
+
+                        {/* Confidence Metric */}
+                        <div className="metric-item confidence-item">
+                            <div className="confidence-bars-container">
+                                <div className={`confidence-bar ${analysisData.confidenceScore > 8 ? 'Green' : ''}`} />
+                                <div className={`confidence-bar ${analysisData.confidenceScore > 6 ? 'Green' : ''}`} />
+                                <div className={`confidence-bar ${analysisData.confidenceScore > 4 ? 'Yellow' : ''}`} />
+                                <div className={`confidence-bar ${analysisData.confidenceScore > 2 ? 'Yellow' : ''}`} />
+                                <div className={`confidence-bar ${analysisData.confidenceScore > 0 ? 'Red' : ''}`} />
+                            </div>
+                            <Typography className="metric-label">
+                                Confidence
+                            </Typography>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Keywords Section */}
+                <div className="keywords-section">
+                    <Typography className="keywords-title">
+                        Helping keywords and suggestions
+                    </Typography>
+                    <Typography className="keywords-subtitle">
+                        Keywords and suggestions help you better your score and your overall pitch, so you can sell more, more efficiently.
+                    </Typography>
+
+                    {showKeywords && analysisData ? (
+                        <div className="keywords-grid">
+                            {analysisData.keywordsToUse.map((keywordItem, index) => (
+                                <div key={index} className="keyword-chip">
+                                    {keywordItem}
+                                </div>
+                            ))}
+                            {analysisData.nextMinuteTips.map((tip, index) => (
+                                <div key={index} className="keyword-chip">
+                                    {tip}
+                                </div>
+                            ))}
+                            {analysisData.sentimentTips.map((tip, index) => (
+                                <div key={index} className="keyword-chip">
+                                    {tip}
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <Typography className="keywords-pending">
+                            Keywords will start displaying after 40 seconds of recording
+                        </Typography>
+                    )}
+                </div>
             </div>
-          ) : (
-            <Typography className="keywords-pending">
-              Keywords will start displaying after a minute of recording
-            </Typography>
-          )}
         </div>
-      </div>
-    </div>
-  );
+    );
 };
 
 export default QuestionAnalysis;
