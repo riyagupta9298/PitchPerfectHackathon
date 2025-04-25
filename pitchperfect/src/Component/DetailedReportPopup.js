@@ -165,7 +165,7 @@ const DetailedReportPopup = ({ questionData, onNextQuestion, showCloseBtn }) => 
             </div>
           </div>
         </div>
-        {caseStudyData?.UserResponse?.AnalysisReport?.Data?.Data?.length > 0 && 
+        {caseStudyData?.UserResponse?.AnalysisReport?.Data?.Data && 
           <div className="question-details">
 
             <Typography className="question-full-text">
